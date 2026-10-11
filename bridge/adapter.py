@@ -56,7 +56,6 @@ class WizAdapter:
                 await asyncio.wait_for(c.activate_hooks(wait_for_ready=True, timeout=12), 20)
                 # Validate basic reads before advertising the client as ready.
                 await asyncio.wait_for(c.body.position(), 3)
-                await c.mouse_handler.activate_mouseless()
                 self.hooked.add(pid)
                 self.errors.pop(pid, None)
                 results.append({'pid': pid, 'ok': True})
@@ -123,6 +122,13 @@ class WizAdapter:
             return current if await current.is_visible() else None
         except ValueError:return None
 
+    async def mouse_action(self,c,action,*args):
+        # WizWalker owns the temporary cursor hook through its context manager.
+        # Release it on return, exceptions and cancellation so physical mouse
+        # movement (including camera drag) works between automated clicks.
+        async with c.mouse_handler:
+            return await action(*args)
+
     async def dialogue_step(self,c,accept=False):
         if not await c.is_in_dialog():return False
         paths=[['WorldView','wndDialogMain','btnRight']] if accept else []
@@ -130,7 +136,7 @@ class WizAdapter:
         for path in paths:
             window=await self.window_path(c,path)
             if window is not None and await window.is_visible():
-                await c.mouse_handler.click_window(window);return True
+                await self.mouse_action(c,c.mouse_handler.click_window,window);return True
         return False
 
     async def combat_step(self,c,config):
@@ -143,7 +149,7 @@ class WizAdapter:
         handler=self.CombatHandler(c)
         for rule in combat_rules(config['combat_rules']):
             if rule['name']=='pass':
-                self.combat_rounds[pid]=marker;await handler.pass_button();return
+                self.combat_rounds[pid]=marker;await self.mouse_action(c,handler.pass_button);return
             cards=await handler.get_damaging_aoes() if rule['name']=='any<aoe>' else await handler.get_cards()
             for card in cards:
                 if not await card.is_castable():continue
@@ -155,9 +161,9 @@ class WizAdapter:
                     if not enemies:continue
                     target=enemies[0]
                 # Claim before clicking: never choose a second card in this round.
-                self.combat_rounds[pid]=marker;await card.cast(target);return
+                self.combat_rounds[pid]=marker;await self.mouse_action(c,card.cast,target);return
         if config['combat_pass']:
-            self.combat_rounds[pid]=marker;await handler.pass_button()
+            self.combat_rounds[pid]=marker;await self.mouse_action(c,handler.pass_button)
 
     async def navmap_teleport(self,c,target=None,timeout=20):
         from navmap import navmap_tp
@@ -198,7 +204,7 @@ class WizAdapter:
             if config['sigil_confirm']:
                 path=['MessageBoxModalWindow','messageBoxBG','messageBoxLayout','AdjustmentWindow','Layout','centerButton']
                 window=await self.window_path(c,path) or await self.window_path(c,['WorldView']+path)
-                if window is not None:await c.mouse_handler.click_window(window)
+                if window is not None:await self.mouse_action(c,c.mouse_handler.click_window,window)
 
     async def restore_speed(self,c):
         pid=str(c.process_id)
@@ -274,7 +280,7 @@ class WizAdapter:
                 if await c.in_battle() or await c.is_loading():continue
                 if await c.is_in_dialog():
                     windows=[w for w in await c.root_window.get_windows_with_name('advanceDialogButton') if await w.is_visible()]
-                    if len(windows)==1:await c.mouse_handler.click_window(windows[0])
+                    if len(windows)==1:await self.mouse_action(c,c.mouse_handler.click_window,windows[0])
             elif op == 'key':
                 await c.send_key(self.Keycode[key(args.get('key'))], number(args.get('seconds', .1), .01, 5))
             elif op == 'teleport':
@@ -321,7 +327,7 @@ class WizAdapter:
                 windows = [w for w in windows if await w.is_visible()]
                 if len(windows) != 1:
                     raise ValueError('Fenster fehlt, ist unsichtbar oder nicht eindeutig.')
-                await c.mouse_handler.click_window(windows[0])
+                await self.mouse_action(c,c.mouse_handler.click_window,windows[0])
             elif op in {'cards', 'cast', 'pass'}:
                 handler = self.CombatHandler(c)
                 if not await c.in_battle():
@@ -336,7 +342,7 @@ class WizAdapter:
                     if await c.duel.duel_phase() != DuelPhase.planning:
                         raise ValueError('Auf die Planungsphase warten.')
                     if op == 'pass':
-                        await handler.pass_button()
+                        await self.mouse_action(c,handler.pass_button)
                     else:
                         card = await handler.get_card_named(text(args.get('name')))
                         if not await card.is_castable():
@@ -353,7 +359,7 @@ class WizAdapter:
                             target = None
                         else:
                             raise ValueError('Ungültiges Kartenziel.')
-                        await card.cast(target)
+                        await self.mouse_action(c,card.cast,target)
             else:
                 raise ValueError('Unbekannter Befehl.')
         return result or {'ok': True, 'count': len(clients)}

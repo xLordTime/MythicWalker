@@ -49,11 +49,14 @@ class MovementTests(unittest.IsolatedAsyncioTestCase):
         enums.DuelPhase=types.SimpleNamespace(planning=1)
         from unittest.mock import patch
         client=types.SimpleNamespace(process_id=42,in_battle=AsyncMock(return_value=True),duel=types.SimpleNamespace(duel_phase=AsyncMock(return_value=1),duel_id_full=AsyncMock(return_value=55),round_num=AsyncMock(return_value=3)))
+        client.mouse_handler=__import__('unittest.mock',fromlist=['AsyncMock']).AsyncMock()
         adapter=WizAdapter.__new__(WizAdapter);adapter.combat_rounds={};adapter.CombatHandler=Handler
         with patch.dict(sys.modules,{'wizwalker.memory.memory_objects.enums':enums}):
             config={**DEFAULTS['automation'],'combat_rules':'LifeBlade@self'}
             await adapter.combat_step(client,config);await adapter.combat_step(client,config)
         self.assertEqual(Handler.get_cards.await_count,1);self.assertEqual(Card.cast.await_count,1)
+        client.mouse_handler.__aenter__.assert_awaited_once()
+        client.mouse_handler.__aexit__.assert_awaited_once()
 
 class ConfigurationTests(unittest.TestCase):
     def test_deimos_defaults_and_legacy_migration(self):

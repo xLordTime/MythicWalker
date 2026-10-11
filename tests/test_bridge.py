@@ -52,6 +52,7 @@ class AdapterTests(unittest.IsolatedAsyncioTestCase):
         c.activate_hooks.side_effect=None
         result=await a.hook(['42'])
         self.assertTrue(result[0]['ok']);self.assertIn('42',a.hooked)
+        c.mouse_handler.activate_mouseless.assert_not_awaited()
         await a.unhook(['42']);self.assertNotIn('42',a.hooked)
 
 class BridgeTests(unittest.IsolatedAsyncioTestCase):

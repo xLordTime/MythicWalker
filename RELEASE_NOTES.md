@@ -1,3 +1,10 @@
+## 0.1.1 Beta 3 · Maus- und Kamera-Fix
+
+- Hooken aktiviert keinen dauerhaften Mouseless-Cursor-Hook mehr.
+- Automatische Dialog-, Sigil-, Fenster- und Kampfklicks aktivieren den Cursor-Hook nur für die jeweilige Aktion.
+- Der Cursor-Hook wird auch bei Fehlern und Abbruch freigegeben.
+- Nach dem Update alte Bridge beenden, neu starten und Clients erneut hooken.
+
 ## 0.1.1 Beta 2 · Projekt-Icons
 
 - Eigenes App-Icon: arkane Kompassrose mit M-Monogramm.
