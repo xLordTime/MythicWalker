@@ -17,6 +17,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from adapter import WizAdapter, DemoAdapter
 from protocol import parse_script
+from botlang import compile_bot, walk_nodes, interpret
+from block_library import BlockLibrary
 from settings import Settings, ACTIONS
 from hotkeys import Hotkeys
 from automation import Automations
@@ -67,6 +69,8 @@ class Bridge:
         self.shutting_down = False
         self.cleanup_error = None
         self.settings = Settings(settings_path)
+        defaults=json.loads((ROOT/"web"/"default-library.json").read_text(encoding="utf-8"))
+        self.block_library=BlockLibrary(defaults,Path(settings_path).with_name("user-blocks.json") if settings_path else None)
         self.widget = widget
         if widget:widget.configure(self.settings.data['widget'])
         self.hotkeys = Hotkeys()
@@ -134,26 +138,53 @@ class Bridge:
     async def run_script(self, steps, ids):
         try:
             start = asyncio.get_running_loop().time()
-            for index, step in enumerate(steps):
+            program=steps if isinstance(steps,dict) else {'body':steps,'blocks':{},'instructions':len(steps)}
+            async with self.lock: initial_zones=await self.adapter.zones(ids)
+            zone_baseline=dict(zip(ids,initial_zones))
+            async def progress(step,index):
                 if asyncio.get_running_loop().time() - start > 900:
                     raise ValueError('Skript-Limit von 15 Minuten erreicht.')
-                await self.send({'type':'progress','step':index+1,'total':len(steps),'line':step['line']})
-                if step['op'] == 'sleep':
-                    await asyncio.sleep(step['seconds'])
-                    continue
-                target = ids if step['target'] == 'mass' else ids[int(step['target'][1:])-1:int(step['target'][1:])]
-                if not target:
-                    raise ValueError(f"Zeile {step['line']}: Client {step['target']} ist nicht ausgewählt.")
-                if step['op'] == 'wait_combat':
-                    # completion waits for currently active fights; it does not enter a fight.
+                await self.send({'type':'progress','step':index,'total':program['instructions'],'line':step['line']})
+            def targets(selector):
+                target=ids if selector in {'mass','any'} else ids[int(selector[1:])-1:int(selector[1:])]
+                if not target:raise ValueError('Client '+selector+' ist nicht ausgewählt.')
+                return target
+            async def check(condition):
+                target=targets(condition['target'])
+                async with self.lock:
+                    value=await asyncio.wait_for(self.adapter.bot_condition(condition['test'],target),5)
+                return not value if condition['not'] else value
+            async def execute(step):
+                if step['op']=='sleep':
+                    await asyncio.sleep(step['seconds']);return
+                target=targets(step['target'])
+                if step['op']=='wait_zone':
+                    baseline=[zone_baseline[pid] for pid in target]
+                    async with asyncio.timeout(step['timeout']):
+                        while True:
+                            async with self.lock:
+                                current=await asyncio.wait_for(self.adapter.zones(target),5)
+                                loaded=await asyncio.wait_for(self.adapter.wait_condition('wait_loading',target),5)
+                            if loaded and all(current[i]!=baseline[i] for i in range(len(target))):
+                                zone_baseline.update(zip(target,current));break
+                            await asyncio.sleep(.25)
+                elif step['op'] in {'wait_loading','wait_window'}:
+                    async with asyncio.timeout(step['timeout']):
+                        while True:
+                            async with self.lock:
+                                ready=await asyncio.wait_for(self.adapter.wait_condition(step['op'],target,step.get('name')),5)
+                            if ready:break
+                            await asyncio.sleep(.25)
+                elif step['op']=='wait_combat':
                     async with asyncio.timeout(300):
                         while True:
-                            async with self.lock: battle = await self.adapter.battle(target)
-                            if not battle: break
+                            async with self.lock:battle=await self.adapter.battle(target)
+                            if not battle:break
                             await asyncio.sleep(.5)
                 else:
                     async with self.lock:
-                        await self.protected_step(step['op'], {**step, 'ids':target})
+                        await self.protected_step(step['op'], {**step, 'ids':target, **({'target':step['card_target']} if step['op']=='cast' else {'target':'own'} if step['op']=='navmap_tp' else {})})
+            await interpret(program,execute,check,progress)
             await self.log('Skript abgeschlossen.')
         except asyncio.CancelledError:
             await self.log('Skript gestoppt.', 'warning')
@@ -161,6 +192,7 @@ class Bridge:
         except Exception as exc:
             await self.log(f'Skript abgebrochen: {type(exc).__name__}: {exc}', 'error')
         finally:
+            await self.automations.stop('combat')
             await self.send({'type':'script_done'})
 
     async def configure_hotkeys(self):
@@ -250,7 +282,7 @@ class Bridge:
             ids, source = args.get('ids'), args.get('source')
             if not isinstance(ids,list) or len(ids)>16 or any(not isinstance(i,str) or len(i)>80 for i in ids) or len(set(ids))!=len(ids):
                 raise ValueError('Ungültige Shortcut-Auswahl.')
-            if not isinstance(source,str) or len(source)>16000: raise ValueError('Shortcut-Skript zu lang.')
+            if not isinstance(source,str) or len(source)>65536: raise ValueError('Shortcut-Skript zu lang (max. 64 KB).')
             leader=args.get('leader')
             if leader is not None and (not isinstance(leader,str) or len(leader)>80):raise ValueError('Ungültiger Leader.')
             self.shortcut_context = {'ids':list(ids), 'source':source,'leader':leader}
@@ -261,21 +293,29 @@ class Bridge:
             return {'stopped':True}
         if op == 'dialogue':
             return await self.automations.toggle('dialogue',args.get('ids'),args.get('enabled'))
+        if op == 'get_block_library':return {'blocks':self.block_library.custom}
+        if op == 'set_block_library':return {'blocks':self.block_library.update(args.get('blocks'))}
         if op == 'validate_script':
-            steps = parse_script(args.get('source'))
-            return {'steps':len(steps), 'parsed':steps}
+            steps=compile_bot(args.get('source'),self.block_library.merged())
+            return {'steps':steps['instructions'], 'parsed':steps}
+
         if op == 'run_script':
-            await self.automations.stop()
             if self.script_task and not self.script_task.done():
                 raise ValueError('Es läuft bereits ein Skript.')
-            steps = parse_script(args.get('source'))
+            steps = compile_bot(args.get('source'),self.block_library.merged())
             ids = args.get('ids')
             self.adapter.selected(ids)
-            for step in steps:
+            for step in walk_nodes(steps):
                 if step.get('target','mass') != 'mass' and int(step['target'][1:]) > len(ids):
                     raise ValueError(f"Zeile {step['line']}: Ziel fehlt in der Auswahl.")
+            auto_combat=args.get('auto_combat',False)
+            if type(auto_combat) is not bool:raise ValueError('Auto-Combat muss boolesch sein.')
+            if auto_combat:
+                if any(step['op'] in {'cast','pass'} for step in walk_nodes(steps)):raise ValueError('Automatischer und manueller Kampf dürfen im Bot nicht gleichzeitig aktiv sein.')
+            await self.automations.stop()
+            if auto_combat:await self.automations.toggle('combat',ids,True)
             self.script_task = asyncio.create_task(self.run_script(steps, list(ids)))
-            return {'started':True, 'steps':len(steps)}
+            return {'started':True, 'steps':steps['instructions']}
         if self.script_task and not self.script_task.done() and op not in {'snapshot','entities','ui_tree','cards','stats','quest_position'}:
             raise ValueError('Skript zuerst stoppen.')
         if op=='unhook':await self.automations.stop()
@@ -305,7 +345,7 @@ class Bridge:
             raise web.HTTPConflict(text='Bridge ist bereits verbunden oder wird beendet.')
         # Claim the session before awaiting the handshake, including teardown.
         async with self.session_lock:
-            ws = web.WebSocketResponse(max_msg_size=65536, heartbeat=20)
+            ws = web.WebSocketResponse(max_msg_size=1048576, heartbeat=20)
             await ws.prepare(request)
             poll = None
             try:

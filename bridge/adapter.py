@@ -240,6 +240,26 @@ class WizAdapter:
                 if coords==[0,0,0]: raise ValueError('Kein aktives Quest-Ziel verfügbar.')
                 if op=='quest_tp': await c.teleport(self.XYZ(*coords))
                 result.append({'id':str(c.process_id),'position':coords,'zone':await c.zone_name()})
+            elif op=='closest_mob':
+                if await c.in_battle() or await c.is_loading():continue
+                from wizwalker.constants import Primitive
+                origin=await c.body.position();nearest=None;distance=float('inf')
+                for entity in (await c.get_base_entity_list())[:1000]:
+                    try:
+                        # Deimos SprintyClient NPCBehavior hostile flag; read only.
+                        hostile=False
+                        for behavior in await entity.inactive_behaviors():
+                            if await behavior.read_type_name()=='NPCBehavior':
+                                hostile=await behavior.read_value_from_offset(288,Primitive.bool);break
+                        if not hostile:continue
+                        body=await entity.actor_body()
+                        if body is None:continue
+                        pos=await body.position();coords=xyz([pos.x,pos.y,pos.z])
+                        d=math.dist([origin.x,origin.y,origin.z],coords)
+                        if d<distance:nearest=coords;distance=d
+                    except Exception:continue
+                if nearest is None:raise ValueError('Kein angreifbarer Mob in dieser Zone gefunden.')
+                await c.teleport(self.XYZ(*nearest))
             elif op == 'nearest_entity':
                 query=text(args.get('query')).casefold()
                 origin=await c.body.position();nearest=None;distance=float('inf')
@@ -364,6 +384,23 @@ class WizAdapter:
                 raise ValueError('Unbekannter Befehl.')
         return result or {'ok': True, 'count': len(clients)}
 
+    async def wait_condition(self,op,ids,name=None):
+        for c in self.selected(ids):
+            if op=='wait_loading':
+                if await c.is_loading():return False
+            elif op=='wait_window':
+                windows=await c.root_window.get_windows_with_name(text(name))
+                if not any([await w.is_visible() for w in windows]):return False
+            else:raise ValueError('Ungültige Wartebedingung.')
+        return True
+
+    async def bot_condition(self,test,ids):
+        if test=='incombat':return await self.battle(ids)
+        if test=='loading':return any([await c.is_loading() for c in self.selected(ids)])
+        raise ValueError('Unbekannte Bedingung.')
+
+    async def zones(self,ids):return [await c.zone_name() for c in self.selected(ids)]
+
     async def battle(self, ids):
         return any([await c.in_battle() for c in self.selected(ids)])
 
@@ -426,7 +463,7 @@ class DemoAdapter:
             for r in rows:self.original_speeds.setdefault(r['id'],40)
         elif op=='restore_speed':
             for r in rows:self.original_speeds.pop(r['id'],None)
-        elif op in {'camera_tp','dialogue_step'}:pass
+        elif op in {'camera_tp','dialogue_step','closest_mob'}:pass
         elif op=='nearest_entity':
             text(args.get('query'))
             for r in rows:r['position']=[150,200,0]
@@ -441,6 +478,14 @@ class DemoAdapter:
         elif op == 'cards': return [{'id':rows[0]['id'], 'cards':[{'name':'LifeBlade','display':'Lebensklinge','castable':True}]}]
         elif op not in {'entity_tp','click_window','cast','pass','freecam'}: raise ValueError('Unbekannter Befehl.')
         return {'ok':True, 'demo':True}
+    async def wait_condition(self,op,ids,name=None):self.selected(ids);return True
+    async def bot_condition(self,test,ids):
+        if test=='incombat':return await self.battle(ids)
+        if test=='loading':return False
+        raise ValueError('Unbekannte Bedingung.')
+
+    async def zones(self,ids):return [r['zone'] for r in self.selected(ids)]
+
     async def battle(self, ids): return any(r['battle'] for r in self.selected(ids))
     async def close(self):
         self.original_speeds.clear()

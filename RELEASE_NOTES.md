@@ -1,3 +1,16 @@
+## 0.1.1 Beta 5 · Bot- und Blockbibliothek
+
+- Minimales Control Center: Übersicht, Hooking, Tools, Skripte/Bot und Combat.
+- Bridge-Setup, große EXE-Kachel, Befehle und Quellen befinden sich auf der Bridge-Seite.
+- Echter Bot-Fork: https://github.com/xLordTime/bots. Elf Deimos-Originale plus Safe Mob Farm im Katalog; Aktualisierung aus dem Fork per Button.
+- Vier Bots mit unterstützter Syntax sind startbar. Acht originale Expertmode-Bots benötigen zusätzliche Deimos-Befehle; der Katalog benennt die fehlende Syntax und erlaubt das Bearbeiten. Keine Behauptung vollständiger Deimos-Kompatibilität.
+- Eigene Bots erstellen, importieren, speichern, exportieren und löschen.
+- Neun Standardblöcke, eigene Blöcke, JSON-Import/Export und dauerhafte Speicherung in der Bridge. `call safe_mob_pull` benötigt keine lokale Blockdefinition.
+- Laufzeit für block/call, if/else, while/until, loop, times und break. Große Schleifen werden nicht aufgefaltet; unbekannte und rekursive Blockaufrufe werden vor Start abgelehnt.
+- Optionaler Auto-Combat während eines Bots; manuelles cast/pass ist dann ausgeschlossen. Stop beendet Bot und Kampfautomatik.
+- Zusätzliche Skriptbefehle: closestmob, Zonenwechsel abwarten, Navmap, Freecam, Fenster/Laden abwarten und Kampfkarten.
+- Grenze: 64 KB pro Bot, 2000 Anweisungen einschließlich Bibliothek, 15 Minuten pro Lauf. Windows-Spielbetrieb benötigt zusätzlich einen Live-Test; automatisierte Adaptertests ersetzen ihn nicht.
+
 ## 0.1.1 Beta 4 · Widget-Steuerung
 
 - Minus-Schaltfläche versteckt das Widget im Windows-Infobereich.

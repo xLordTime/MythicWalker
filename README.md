@@ -1,9 +1,31 @@
-# Mythic Walker · 0.1.1 Beta 1
+# Mythic Walker · 0.1.1 Beta 5
+
+## Bot- und Standardbibliothek (Beta 5)
+
+Bot-Fork: https://github.com/xLordTime/bots. Enthält unveränderte Deimos-Originale, `default_lib/`, eine importierbare `default-library.json` und Safe Mob Farm. Der Webkatalog startet mit zwölf Dateien (elf Originale plus ein MythicWalker-Beispiel). **Vom Fork aktualisieren** liest den aktuellen Commit, dann alle `.txt`-Bots unter `bots/`. Eigene Dateien mit Metadaten `@name`, `@author`, `@zone` und `@clients` erscheinen nach der Aktualisierung. `@zone: *` erlaubt beliebige Startzonen. Lokale Bots lassen sich ebenfalls importieren, im Browser speichern, exportieren und löschen.
+
+**Aktuell startbar:** Foulgaze, PublishTest1, Harvest Lord Test und Safe Mob Farm. Die acht komplexeren Originaldateien sind im Editor verfügbar, benötigen aber weitere Expertmode-Befehle (z. B. Variablen, Pfadbedingungen, Playstyles oder Tränke). Der Katalog zeigt die erste nicht unterstützte Anweisung und deaktiviert den direkten Start. Die Bridge validiert erneut und führt unbekannte Syntax nicht aus. Clientzahl und Original-Startzone werden beim Katalogstart geprüft; englische interne Namen und die Startbedingungen des Autors vor dem Live-Lauf beachten.
+
+Unter **Standardbibliothek · Blöcke** stehen `safe_mob_pull`, `wait_combat_done`, `interact_all`, `quest_nav`, `wait_loading`, `step_forward`, `restore_speed`, `sigil_enter` und `after_combat`. Eigene Blöcke können als Inhalt oder als vollständige `block name { … }`-Definition gespeichert werden. **Call einfügen** setzt den Aufruf an die Cursorposition. JSON-Import/Export sichert eigene Blöcke. **In Bridge speichern** persistiert sie als `user-blocks.json`, **Aus Bridge laden** übernimmt diese in den Browser. Start und Prüfung übertragen die aktuelle Browserbibliothek automatisch. Für Spiel-Shortcuts Änderungen zuvor in der Bridge speichern. Inline-Definitionen im Bot überschreiben Bibliotheksblöcke; entfernte eigene Überschreibungen stellen den Standard wieder her.
+
+```text
+##deimos_expertmode
+times 999999 {
+    call safe_mob_pull
+    call after_combat
+}
+```
+
+`block`, `call`, `if/else`, `while`, `until`, `loop`, `times` (1–999999) und `break`/`exitloop` werden zur Laufzeit interpretiert. Unterstützte Bedingungen: `incombat`, `loading`, optional `not` und `any`/`mass`/`p1` etc. Befehle ohne Clientpräfix richten sich an die Auswahl. Grenzen: 64 KB Bot, 16 KB pro Bibliotheksblock, 90 eigene Blöcke / 256 KB Bibliothek, 12 verschachtelte Ebenen, 16 Blockaufrufe, 2000 Anweisungen einschließlich Bibliothek und 15 Minuten Laufzeit. Schleifen bleiben kompakt; unbekannte oder zyklische Aufrufe sind Fehler. Stop bleibt auch in Schleifen ohne Pause wirksam.
+
+`tp closestmob` verwendet den schreibgeschützten NPCBehavior-Aggro-Flag entsprechend Deimos SprintyClient und teleportiert zum nächstgelegenen feindlichen Actor. Keine Entities gefunden bedeutet Abbruch. Das ist ein eigener Laufzeitpfad und muss zusätzlich im aktuellen DE-Spiel bestätigt werden. `waitforzonechange completion` merkt sich die zuletzt bestätigte Zone, sodass ein Übergang vor Erreichen der Warteanweisung erkannt wird. Zonen- und Ladewartezeit sind auf 120 Sekunden begrenzt, Kampfwartezeit auf 300 Sekunden.
+
+Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Combat. Andere Automatikmodi werden beim Start beendet; die Kampfautomatik endet zusammen mit dem Bot. `cast`/`pass` im selben Bot ist mit dieser Option nicht erlaubt. Ansonsten Kampf manuell steuern. Alle Module und die lokale Bridge bleiben für Browser-Skripte notwendig.
 
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.1` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.5` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 

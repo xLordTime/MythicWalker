@@ -12,7 +12,7 @@ class Element {
 for(const m of html.matchAll(/<(\w+)[^>]*\bid="([^"]+)"[^>]*>/g)){const el=new Element(m[2],m[1]);const value=m[0].match(/\bvalue="([^"]*)"/);if(value)el.value=value[1];elements.set(el.id,el);}
 const nav=[...html.matchAll(/class="nav[^"]*" data-page="([^"]+)"/g)].map(m=>{const e=new Element('nav-'+m[1],'button');e.dataset.page=m[1];return e;});
 const document={body:new Element('body'),getElementById:id=>{if(!elements.has(id)){if(id.startsWith('binding-'))elements.set(id,new Element(id,'input'));else throw Error('Missing '+id);}return elements.get(id);},querySelectorAll:sel=>sel==='.nav'?nav:sel==='.page'?[...elements.values()].filter(e=>e.id.startsWith('page-')):[],querySelector:()=>null,addEventListener:(type,fn)=>listeners[type]=fn,createElement:()=>new Element('new')};
-const local=new Map();const context={document,console,localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},location:{hash:''},history:{replaceState(){}},window:{addEventListener(){},scrollTo(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,Blob,URL,URLSearchParams,fetch:async()=>({json:async()=>({sources:[]})})};
+const local=new Map();const context={document,console,localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},location:{hash:''},history:{replaceState(){}},window:{addEventListener(){},scrollTo(){}},setTimeout,clearTimeout,AbortController,crypto:require('node:crypto').webcrypto,Blob,URL,URLSearchParams,fetch:async url=>({json:async()=>url==='upstream-bots.json'?JSON.parse(fs.readFileSync('dist/upstream-bots.json','utf8')):{sources:[]}})};
 const launchToken='test_pair_token_abcdefghijklmnopqrstuvwxyz';
 if(process.env.TEST_PAIR==='1'){
  context.location={hash:'#pair='+launchToken,pathname:'/',search:''};context.history.replaceState=(state,title,url)=>{context.location.hash=url.slice(url.indexOf('#'));};
@@ -22,7 +22,7 @@ if(process.env.TEST_PAIR==='1'){
  }
  context.WebSocket=Socket;
 }
-vm.createContext(context);vm.runInContext(fs.readFileSync('dist/settings.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/tools.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/app.js','utf8'),context);
+vm.createContext(context);vm.runInContext(fs.readFileSync('dist/settings.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/tools.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/default-library.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/botlang.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/bot-catalog.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/app.js','utf8'),context);
 function el(id){return elements.get(id);}
 (async()=>{
  if(process.env.TEST_PAIR==='1'){
@@ -34,6 +34,14 @@ function el(id){return elements.get(id);}
  async function shortcut(key){await listeners.keydown({key,ctrlKey:true,altKey:true,shiftKey:false,metaKey:false,repeat:false,target:new Element('target'),preventDefault(){},stopImmediatePropagation(){}});await new Promise(r=>setTimeout(r,5));}
  await shortcut('H');assert.equal(el('metric-hooks').textContent,1);
  await el('quest-read').click();assert.match(el('quest-output').textContent,/500/);await el('quest-go').click();await el('stats-read').click();assert.match(el('stats-output').textContent,/current_gold/);await el('dialogue-toggle').click();assert.match(el('tools-state').textContent,/läuft/);await el('tools-stop').click();
+ el('script-template').value='2';await el('load-template').click();assert.match(el('script-editor').value,/navquest/);await el('validate-script').click();assert.match(el('script-validation').textContent,/Syntax gültig/);
+ assert.match(el('block-list').innerHTML,/call safe_mob_pull/);
+ el('block-name').value='mine';el('block-description').value='Mein Block';el('block-source').value='mass sendkey X, 0.1';await el('save-block').click();assert.equal(JSON.parse(local.get('mythic-blocks-v1'))[0].name,'mine');
+ el('script-editor').value='times 999999 {\ncall mine\ncall safe_mob_pull\n}';await el('validate-script').click();assert.match(el('script-validation').textContent,/Syntax gültig/);
+ el('block-source').value='call missing';await el('save-block').click();assert.match(el('toast').textContent,/Unbekannter Block/);assert.equal(JSON.parse(local.get('mythic-blocks-v1'))[0].source,'mass sendkey X, 0.1');
+ await new Promise(r=>setTimeout(r,0));assert.match(el('bot-catalog-status').textContent,/12 Bots/);assert.match(el('bot-catalog-status').textContent,/4 aktiv/);
+ await el('combat-read').click();assert.match(el('combat-cards').innerHTML,/LifeBlade/);
+ for(const [page,label] of [['hooking','Hooking'],['combat','Combat'],['scripts','Skripte / Bot'],['tools','Tools']]){await nav.find(n=>n.dataset.page===page).click();assert.equal(el('breadcrumb').textContent,label);}
  await shortcut('U');assert.equal(el('metric-hooks').textContent,0);
  // Persist the saved configuration after exercising shortcuts.
  await el('save-settings').click();

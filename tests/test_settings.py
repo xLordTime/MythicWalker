@@ -56,7 +56,7 @@ class ShortcutTests(unittest.IsolatedAsyncioTestCase):
         await b.shortcut('run_script',1);self.assertFalse(b.script_task.done())
         b.hotkey_busy=True
         await b.shortcut('stop',1);self.assertIsNone(b.script_task)
-        for args in [{'ids':['9001','9001'],'source':''},{'ids':['9001'],'source':'a'*16001}]:
+        for args in [{'ids':['9001','9001'],'source':''},{'ids':['9001'],'source':'a'*65537}]:
             with self.assertRaises(ValueError):await b.dispatch('shortcut_context',args)
 
 class NativeRegistrationTests(unittest.TestCase):
