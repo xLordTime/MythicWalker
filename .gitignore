@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+bridge/certs/
+bridge/build/
+bridge/dist/
+*.spec
+.openai/local-state.json
+
+.venv-before-fix-*/
+
+bridge/user-settings.json
+bridge/user-settings.tmp
+
+bridge/bridge.log

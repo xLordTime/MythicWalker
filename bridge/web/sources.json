@@ -1,0 +1,66 @@
+{
+  "checked_at": "2026-10-11",
+  "backend_commit": "13223e0911578e586975ace496d9f586ac4538da",
+  "sources": [
+    {
+      "name": "Vindaloniak/wizwalker",
+      "url": "https://github.com/Vindaloniak/wizwalker/tree/13223e0911578e586975ace496d9f586ac4538da",
+      "role": "DE/EU-Backend · fixierter Commit"
+    },
+    {
+      "name": "Deimos-Wizard101/wizwalker",
+      "url": "https://github.com/Deimos-Wizard101/wizwalker",
+      "role": "Upstream · Hook-/Client-API"
+    },
+    {
+      "name": "Slackaduts/Deimos-Wizard101",
+      "url": "https://github.com/Slackaduts/Deimos-Wizard101",
+      "role": "README verweist auf die Deimos-Organisation"
+    },
+    {
+      "name": "CIick/FishyBusiness",
+      "url": "https://github.com/CIick/FishyBusiness",
+      "role": "Fishing · als Erweiterung untersucht"
+    },
+    {
+      "name": "Lxghtend/raid-utility-tools",
+      "url": "https://github.com/Lxghtend/raid-utility-tools",
+      "role": "Raid-Utilities · als Erweiterung untersucht"
+    },
+    {
+      "name": "StarrFox/wizdancer",
+      "url": "https://github.com/StarrFox/wizdancer",
+      "role": "Pet Dance · als Erweiterung untersucht"
+    },
+    {
+      "name": "LaurenzLikeThat/wiztype",
+      "url": "https://github.com/LaurenzLikeThat/wiztype",
+      "role": "Type-Dumper · Diagnosewerkzeug"
+    },
+    {
+      "name": "Slackaduts/wizdiff",
+      "url": "https://github.com/Slackaduts/wizdiff",
+      "role": "Versionsvergleich · Diagnosewerkzeug"
+    },
+    {
+      "name": "vbe0201/wizproxy",
+      "url": "https://github.com/vbe0201/wizproxy",
+      "role": "Packet-Proxy · keine Integration"
+    },
+    {
+      "name": "nboj/Deimos-Wizard101",
+      "url": "https://github.com/nboj/Deimos-Wizard101",
+      "role": "Im Repository-Suchlauf gefunden"
+    },
+    {
+      "name": "notfaj/Deimos-Wizard101",
+      "url": "https://github.com/notfaj/Deimos-Wizard101",
+      "role": "Im Repository-Suchlauf gefunden"
+    },
+    {
+      "name": "7e11/wizwalker",
+      "url": "https://github.com/7e11/wizwalker",
+      "role": "Im Repository-Suchlauf gefunden"
+    }
+  ]
+}

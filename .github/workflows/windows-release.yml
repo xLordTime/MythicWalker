@@ -1,0 +1,96 @@
+name: Windows Bridge Release
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'EXE als GitHub-Release veröffentlichen'
+        type: boolean
+        default: true
+  push:
+    branches: ['main']
+    tags: ['v*']
+    paths:
+      - 'bridge/**'
+      - 'scripts/release_manifest.py'
+      - '.github/workflows/windows-release.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: bridge/requirements.txt
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --only-binary=regex -r bridge/requirements.txt pyinstaller==6.16.0
+          python -m pip check
+      - name: Test bridge
+        run: python -m unittest discover -s tests -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test web client
+        run: |
+          node tests/test_frontend.cjs
+          node tests/test_ui_runtime.cjs
+          $env:TEST_PAIR="1"; node tests/test_ui_runtime.cjs
+      - name: Build compact windowed executable
+        shell: pwsh
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          Copy-Item dist/index.html,dist/app.js,dist/settings.js,dist/tools.js,dist/style.css,dist/sources.json bridge/web -Force
+          @{repository=$env:RELEASE_REPOSITORY} | ConvertTo-Json | Set-Content bridge/release_source.json -Encoding utf8NoBOM
+          Set-Location bridge
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MythicWalker --collect-submodules wizwalker --add-data 'web;web' --add-data 'release_source.json;.' --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6 --exclude-module matplotlib --exclude-module numpy desktop.py
+          if ($LASTEXITCODE -ne 0) { throw 'Build fehlgeschlagen.' }
+          python ../scripts/release_manifest.py dist/MythicWalker.exe
+      - name: Smoke test packaged Windows widget
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath .\bridge\dist\MythicWalker.exe -ArgumentList '--smoke-test' -PassThru
+          if (-not $process.WaitForExit(20000)) { $process.Kill(); throw 'EXE Smoke-Test: Timeout.' }
+          if ($process.ExitCode -ne 0) { throw "EXE Smoke-Test: Exit $($process.ExitCode)." }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MythicWalker-Windows
+          path: |
+            bridge/dist/MythicWalker.exe
+            bridge/dist/bridge-release.json
+          if-no-files-found: error
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') || inputs.publish == true || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: MythicWalker-Windows
+          path: release
+      - name: Publish versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+          TAG_REF: ${{ github.ref }}
+        run: |
+          VERSION=$(python -c 'import json;print(json.load(open("release/bridge-release.json"))["version"])')
+          TAG=$(python -c 'import json;print(json.load(open("release/bridge-release.json"))["tag"])')
+          if [[ "$TAG_REF" == refs/tags/* && "$TAG_REF" != "refs/tags/$TAG" ]]; then
+            echo 'Tag passt nicht zur App-Version'; exit 1
+          fi
+          if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$VERSION existiert bereits; unverändert beibehalten."; exit 0
+          fi
+          gh release create "$TAG" release/MythicWalker.exe release/bridge-release.json --repo "$REPOSITORY" --target "$SOURCE_SHA" --title "Mythic Walker $VERSION Beta" --notes-file RELEASE_NOTES.md --prerelease --latest=false
