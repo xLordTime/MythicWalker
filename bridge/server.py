@@ -76,8 +76,14 @@ class Bridge:
         self.automations = Automations(self)
 
     async def send(self, data):
-        if self.ws and not self.ws.closed:
-            await self.ws.send_json(data)
+        ws = self.ws
+        if ws and not ws.closed:
+            try:
+                await ws.send_json(data)
+            except ConnectionResetError:
+                # The peer can disappear after the closed check. Cleanup is
+                # owned by the websocket handler, including native hotkeys.
+                pass
 
     async def log(self, message, level='info'):
         if level=='error':self.observer('Aktion fehlgeschlagen',message)
