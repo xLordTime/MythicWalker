@@ -108,6 +108,26 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['data'], expected)
         self.assertFalse(ws.closed)
         await ws.close()
+
+    async def test_packaged_scripts_health_and_authenticated_diagnostics(self):
+        from version import RELEASE_TAG
+        html = (Path(__file__).resolve().parents[1]/'dist/index.html').read_text()
+        import re
+        for filename in re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html):
+            async with self.session.get(self.base+'/'+filename,ssl=False) as response:
+                self.assertEqual(response.status,200,filename)
+                self.assertTrue(await response.text())
+        async with self.session.get(self.base+'/health',ssl=False,headers={'Origin':'https://dashboard.example'}) as response:
+            self.assertEqual(response.headers['Access-Control-Allow-Origin'],'https://dashboard.example')
+            self.assertEqual((await response.json())['release'],RELEASE_TAG)
+        async with self.session.get(self.base+'/health',ssl=False,headers={'Origin':'https://evil.example'}) as response:
+            self.assertNotIn('Access-Control-Allow-Origin',response.headers)
+        ws = await self.connect()
+        report = await self.request(ws,'get_diagnostics')
+        self.assertTrue(report['ok'])
+        self.assertEqual(report['data']['release'],RELEASE_TAG)
+        self.assertNotIn('test-pairing',json.dumps(report))
+        await ws.close()
     async def test_stop_and_script_validation(self):
         ws=await self.connect();await ws.receive_json();await self.request(ws,'hook',{'ids':['9001']})
         invalid=await self.request(ws,'run_script',{'ids':['9001'],'source':'p2 sendkey X 0.1'})

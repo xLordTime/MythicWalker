@@ -1,6 +1,7 @@
 """Pointer-safe discovery of Wizard101's actual game windows (not its launcher)."""
 import ctypes
 from ctypes import wintypes
+from diagnostics import event
 
 
 def wizard_windows(api=None, callback_type=None):
@@ -12,14 +13,22 @@ def wizard_windows(api=None, callback_type=None):
     api.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
     api.GetClassNameW.restype = ctypes.c_int
     handles = []
+    inspected = 0
+    possible_classes = set()
 
     def visit(handle, _):
+        nonlocal inspected
+        inspected += 1
         name = ctypes.create_unicode_buffer(256)
-        if api.GetClassNameW(handle, name, len(name)) and name.value == 'Wizard Graphical Client':
+        copied = api.GetClassNameW(handle, name, len(name))
+        if copied and 'wizard' in name.value.lower(): possible_classes.add(name.value)
+        if copied and name.value == 'Wizard Graphical Client':
             handles.append(handle)
         return True
 
     callback = callback_signature(visit)
     if not api.EnumWindows(callback, 0):
+        event('windows.enumeration.failed')
         raise OSError('Windows-Fenstersuche fehlgeschlagen.')
+    event('windows.enumeration.complete', inspected=inspected, matched=len(handles), wizard_classes=sorted(possible_classes))
     return handles

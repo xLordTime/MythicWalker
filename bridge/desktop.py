@@ -20,6 +20,7 @@ from updater import check_and_install, launch_update
 from version import VERSION, CHANNEL, RELEASE_TAG
 from widget import StatusWidget
 from settings import Settings
+from diagnostics import start_logging, event, logger, hide_secret
 
 
 def handoff_url(token,origin=SITE_ORIGIN):
@@ -46,8 +47,14 @@ def main():
         if widget.hidden or widget.smoke_toggles!=2:raise RuntimeError('Widget hide/show smoke test failed.')
         return
     root=Path(os.environ.get('LOCALAPPDATA',Path.home()))/'MythicWalker';root.mkdir(parents=True,exist_ok=True)
-    widget=StatusWidget(VERSION+' Beta');widget.configure(Settings(root/'user-settings.json').data['widget']);stop=threading.Event();finished=threading.Event();launch={'url':SITE_ORIGIN}
-    widget.browser=lambda:webbrowser.open(launch['url'])
+    start_logging(root)
+    widget=StatusWidget(RELEASE_TAG.removeprefix('v'));widget.configure(Settings(root/'user-settings.json').data['widget']);stop=threading.Event();finished=threading.Event();launch={'url':SITE_ORIGIN}
+    def open_browser():
+        event('browser.open.begin', paired_link='#pair=' in launch['url'])
+        result = webbrowser.open(launch['url'])
+        event('browser.open.return', accepted=result)
+        return result
+    widget.browser=open_browser
     def close():
         widget.report('Bridge beenden','Automatik stoppen und Hooks entfernen …');stop.set()
         if finished.is_set():widget.finish()
@@ -55,7 +62,9 @@ def main():
     async def serve():
         widget.report('Zertifikat vorbereiten','Lokale Verbindung für diesen Windows-Benutzer.')
         cert,key=ensure_cert(root/'certs');await asyncio.to_thread(trust_certificate,cert)
+        event('certificate.trusted')
         token=secrets.token_urlsafe(24)
+        hide_secret(token)
         bridge=Bridge(DemoAdapter() if '--demo' in sys.argv else WizAdapter(),token,[SITE_ORIGIN,'https://localhost:18761','https://127.0.0.1:18761'],'--demo' in sys.argv,settings_path=root/'user-settings.json',observer=widget.report,widget=widget)
         tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);tls.minimum_version=ssl.TLSVersion.TLSv1_2;tls.load_cert_chain(cert,key)
         web_dir=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'web'
@@ -63,9 +72,10 @@ def main():
         try:
             widget.report('Bridge starten','HTTPS · localhost:18761')
             await web.TCPSite(runner,'127.0.0.1',18761,ssl_context=tls).start()
+            event('server.listening', host='127.0.0.1', port=18761)
             launch['url']=handoff_url(token)
             widget.report('Browser öffnen','Dashboard wird automatisch gekoppelt.')
-            await asyncio.to_thread(webbrowser.open,launch['url'])
+            await asyncio.to_thread(open_browser)
             if bridge.ws is None or bridge.ws.closed:
                 widget.report('Kopplung wartet','Falls nötig im Browser anmelden und lokalen Netzwerkzugriff erlauben.')
             while not stop.is_set():await asyncio.sleep(.2)
@@ -76,21 +86,28 @@ def main():
             repo=json.loads(resource.read_text()).get('repository','') if resource.exists() else ''
             if repo and getattr(sys,'frozen',False) and '--updated' not in sys.argv:
                 try:
-                    new=check_and_install(repo,RELEASE_TAG,root,widget.report,channel=CHANNEL)
+                    def report(title,detail=''):
+                        event('startup.step', title=title, detail=detail)
+                        widget.report(title,detail)
+                    new=check_and_install(repo,RELEASE_TAG,root,report,channel=CHANNEL)
                     if new and not stop.is_set():
                         launch_update(new);widget.finish();return
-                except Exception as exc:widget.report('Update nicht verfügbar',str(exc))
+                except Exception as exc:
+                    logger.exception('update.failed');widget.report('Update nicht verfügbar',str(exc))
             elif not repo:widget.report('Updatequelle noch offen','GitHub-Release-Repository wird beim Build hinterlegt.')
             if stop.is_set():widget.finish();return
             loop=bridge_event_loop()
+            event('event_loop', implementation=type(loop).__name__)
+            loop.set_exception_handler(lambda loop,context: logger.error('asyncio.failed %s',context.get('message'),exc_info=context.get('exception')))
             try:loop.run_until_complete(serve())
             finally:loop.close()
             widget.finish()
         except Exception as exc:
+            logger.exception('desktop.failed')
             widget.report('Fehler',str(exc)+' · Details: bridge.log')
-            (root/'bridge.log').write_text(type(exc).__name__+': '+str(exc),encoding='utf-8')
         finally:
             finished.set()
+            event('desktop.worker.finished')
             if stop.is_set():widget.finish()
     thread=threading.Thread(target=worker,name='MythicBridge',daemon=False);thread.start()
     try:widget.run()

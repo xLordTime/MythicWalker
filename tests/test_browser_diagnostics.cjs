@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const store=new Map(),listeners={};const window={location:{origin:'https://dashboard.example'},navigator:{userAgent:'test-browser',onLine:true},isSecureContext:true,sessionStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},addEventListener:(name,fn)=>listeners[name]=fn};
+vm.runInNewContext(fs.readFileSync('dist/diagnostics.js','utf8'),{window});
+const diag=window.mwDiagnostics;diag.secret('secret_pair_code');diag.record('auth',{token:'secret_pair_code',url:'https://example/#pair=secret_pair_code',source:'private bot'});
+listeners.error({message:'Oops secret_pair_code',filename:'https://example/app.js',lineno:7,error:{stack:'stack secret_pair_code'}});
+assert(!JSON.stringify(diag.snapshot()).includes('secret_pair_code'));assert(!JSON.stringify(diag.snapshot()).includes('private bot'));
+assert(!store.get('mythic-diagnostics-v1').includes('secret_pair_code'));
+for(let i=0;i<1100;i++)diag.record('bounded',{index:i});assert.equal(diag.snapshot().length,1000);
+vm.runInNewContext(fs.readFileSync('dist/diagnostics.js','utf8'),{window});assert.equal(window.mwDiagnostics.snapshot().length,1000);
+assert(window.mwDiagnostics.snapshot().some(e=>e.event==='page.loaded'));
+console.log('Browser diagnostics redact pairing tokens, preserve reload history and bound log size.');

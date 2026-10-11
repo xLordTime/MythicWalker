@@ -22,11 +22,17 @@ if(process.env.TEST_PAIR==='1'){
  }
  context.WebSocket=Socket;
 }
-vm.createContext(context);vm.runInContext(fs.readFileSync('dist/settings.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/tools.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/default-library.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/botlang.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/bot-catalog.js','utf8'),context);vm.runInContext(fs.readFileSync('dist/app.js','utf8'),context);
+vm.createContext(context);
+const scriptFiles=[...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(m=>m[1]);
+assert(scriptFiles.indexOf('botlang.js')<scriptFiles.indexOf('app.js'));
+assert(scriptFiles.includes('default-library.js')&&scriptFiles.includes('bot-catalog.js')&&scriptFiles.includes('diagnostics.js'));
+for(const file of scriptFiles)vm.runInContext(fs.readFileSync('dist/'+file,'utf8'),context,{filename:file});
+assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='app.init.ready'));
+
 function el(id){return elements.get(id);}
 (async()=>{
  if(process.env.TEST_PAIR==='1'){
-  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));console.log('Browser auto-pairing, fragment cleanup and token redaction passed.');process.exit(0);
+  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));console.log('Browser auto-pairing, fragment cleanup and token redaction passed.');process.exit(0);
  }
  await el('settings-button').click();assert.equal(el('breadcrumb').textContent,'Einstellungen');
  el('setting-key_seconds').value='0.6';el('setting-accent').value='teal';await el('save-settings').click();assert.equal(document.body.dataset.accent,'teal');assert.equal(el('key-seconds').value,.6);

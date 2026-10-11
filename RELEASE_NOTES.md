@@ -1,3 +1,12 @@
+## 0.1.1 Beta 7 · Diagnose und Kopplung
+
+- Behebt fehlende Script-Tags für Bot-Parser, Standardbibliothek und Botkatalog. Der Fehler konnte die App-Initialisierung vor der automatischen Kopplung abbrechen.
+- UI-Tests laden jetzt die tatsächliche Script-Reihenfolge aus index.html. Die lokale Oberfläche liefert alle benötigten Dateien aus.
+- Ausführliche lokale DEBUG-Logs: Start/Updates, Zertifikat, Browseröffnung, HTTP/WebSocket, Authentifizierung, Client-Fenster, Prozesszugriff, Hook-Validierung, Befehlsdauer, Statuswechsel und Aufräumen. Fehler mit vollständiger Fehlerspur.
+- Windows-EXE: %LOCALAPPDATA%\MythicWalker\bridge.log, maximal vier Dateien mit je 2 MB. Python-Starter: bridge/logs/bridge.log. Pairing-Codes werden redigiert; keine Bot- oder Auth-Payloads im Trace.
+- Bridge-Seite: Verbindung testen und Diagnose herunterladen. Ohne Kopplung enthält der Export Browser-Logs; mit Kopplung zusätzlich Ausschnitte der Bridge-Logs. Browser-Logs überstehen Neuladen innerhalb desselben Tabs und sind auf 1000 Einträge begrenzt.
+- Widget und Webkopplung zeigen den genauen Release-Tag.
+
 ## 0.1.1 Beta 6 · Client-Erkennung
 
 - Windows-Fenstersuche mit pointerbreiten HWNDs und korrekt dimensioniertem Klassenpuffer.

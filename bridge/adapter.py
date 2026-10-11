@@ -2,11 +2,13 @@
 import asyncio
 import math
 import time
+from diagnostics import event, logger
 from settings import combat_rules
 from protocol import key, number, text, xyz
 
 class WizAdapter:
     def __init__(self):
+        event('adapter.init.begin')
         from wizwalker import ClientHandler, Keycode
         from wizwalker.utils import XYZ
         from wizwalker.combat import CombatHandler
@@ -21,6 +23,7 @@ class WizAdapter:
         from windows_clients import wizard_windows
         self.discover_windows = wizard_windows
         self.scan_errors = []
+        event('adapter.init.ready')
 
     def clients(self):
         return {str(c.process_id): c for c in self.handler.clients if c.is_running()}
@@ -39,6 +42,7 @@ class WizAdapter:
         return result
 
     async def scan(self):
+        event('scan.begin', known=len(self.handler.clients))
         for client in self.handler.remove_dead_clients():
             self.hooked.discard(str(client.process_id))
             self.original_speeds.pop(str(client.process_id),None)
@@ -50,6 +54,7 @@ class WizAdapter:
         # Register a handle only AFTER Client construction succeeds, so an
         # access-denied or startup race does not poison every later scan.
         handles = self.discover_windows()
+        event('scan.windows', count=len(handles), handles=handles)
         self.scan_errors = []
         managed = {client.window_handle for client in self.handler.clients}
         self.handler._managed_handles[:] = list(managed)
@@ -57,16 +62,21 @@ class WizAdapter:
             if handle in managed:
                 continue
             try:
+                event('scan.attach.begin', handle=handle)
                 client = self.handler.client_cls(handle)
             except Exception as exc:
+                logger.exception('scan.attach.failed handle=%s', handle)
                 self.scan_errors.append(f'Fenster {handle}: {type(exc).__name__}: {exc}')
                 continue
             self.handler.clients.append(client)
             self.handler._managed_handles.append(handle)
             managed.add(handle)
+            event('scan.attach.ready', handle=handle, pid=client.process_id)
         if self.scan_errors and not self.handler.clients:
             raise RuntimeError('Spiel gefunden, Zugriff fehlgeschlagen. Bridge und Spiel mit denselben Windows-Rechten starten. ' + '; '.join(self.scan_errors))
-        return await self.snapshot()
+        result = await self.snapshot()
+        event('scan.complete', clients=[r['id'] for r in result], errors=len(self.scan_errors))
+        return result
 
     async def hook(self, ids):
         results = []
@@ -75,13 +85,17 @@ class WizAdapter:
             if pid in self.hooked:
                 continue
             try:
+                event('hook.begin', pid=pid, timeout=20)
                 await asyncio.wait_for(c.activate_hooks(wait_for_ready=True, timeout=12), 20)
+                event('hook.memory_validation', pid=pid)
                 # Validate basic reads before advertising the client as ready.
                 await asyncio.wait_for(c.body.position(), 3)
                 self.hooked.add(pid)
                 self.errors.pop(pid, None)
                 results.append({'pid': pid, 'ok': True})
+                event('hook.ready', pid=pid)
             except BaseException as exc:
+                logger.exception('hook.failed pid=%s', pid)
                 try:
                     await c.close()
                 finally:
@@ -93,6 +107,7 @@ class WizAdapter:
         return results
 
     async def unhook(self, ids):
+        event('unhook.begin', ids=ids)
         for c in self.selected(ids, hooked=False):
             await self.restore_speed(c)
             if str(c.process_id) in self.freecam:

@@ -10,6 +10,8 @@ from pathlib import Path
 import secrets
 import ssl
 import sys
+import time
+from diagnostics import event, logger, hide_secret, start_logging, bundle
 from aiohttp import web, WSMsgType
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -23,7 +25,7 @@ from settings import Settings, ACTIONS
 from hotkeys import Hotkeys
 from automation import Automations
 
-from version import VERSION
+from version import VERSION, RELEASE_TAG
 SITE_ORIGIN = 'https://mythic-walker.lord-time.chatgpt.site'
 ROOT = Path(__file__).resolve().parent
 
@@ -62,6 +64,9 @@ def ensure_cert(directory):
 class Bridge:
     def __init__(self, adapter, token, origins, demo=False, settings_path=None, observer=None, widget=None):
         self.adapter, self.token, self.origins, self.demo = adapter, token, set(origins), demo
+        hide_secret(token)
+        self.last_diagnostic_state = None
+        event('bridge.init', demo=demo, origins=sorted(self.origins), release=RELEASE_TAG)
         self.lock = asyncio.Lock()
         self.session_lock = asyncio.Lock()
         self.ws = None
@@ -92,12 +97,17 @@ class Bridge:
                 pass
 
     async def log(self, message, level='info'):
+        getattr(logger, 'warning' if level == 'warning' else 'error' if level == 'error' else 'info')('%s', message)
         if level=='error':self.observer('Aktion fehlgeschlagen',message)
         await self.send({'type':'log', 'level':level, 'message':message,
                          'time':datetime.datetime.now().isoformat(timespec='seconds')})
 
     async def state(self):
         clients=await self.adapter.snapshot()
+        summary = [(c['id'],c['hooked'],c.get('error')) for c in clients]
+        if summary != self.last_diagnostic_state:
+            event('state.changed', clients=summary)
+            self.last_diagnostic_state = summary
         running=bool(self.script_task and not self.script_task.done())
         modes=self.automations.state()
         dialogue=modes['dialogue']
@@ -258,6 +268,7 @@ class Bridge:
         raise ValueError('Unbekannte Movement-Aktion.')
 
     async def dispatch(self, op, args):
+        if op == 'get_diagnostics': return bundle()
         if self.cleanup_error:
             raise ValueError('Bridge nach Unhook-Fehler neu starten: ' + self.cleanup_error)
         if op=='movement':return await self.movement(args.get('action'),args)
@@ -339,9 +350,13 @@ class Bridge:
                 await self.log(f'Status: {exc}', 'error')
 
     async def websocket(self, request):
+        event('ws.handshake', origin=request.headers.get('Origin'), peer=request.remote,
+              active=self.session_lock.locked(), shutting_down=self.shutting_down)
         if request.headers.get('Origin') not in self.origins:
+            event('ws.rejected', reason='origin')
             raise web.HTTPForbidden(text='Origin nicht erlaubt.')
         if self.session_lock.locked() or self.shutting_down:
+            event('ws.rejected', reason='another_session_or_shutdown')
             raise web.HTTPConflict(text='Bridge ist bereits verbunden oder wird beendet.')
         # Claim the session before awaiting the handshake, including teardown.
         async with self.session_lock:
@@ -350,16 +365,19 @@ class Bridge:
             poll = None
             try:
                 msg = await ws.receive(timeout=8)
+                event('ws.auth.received', frame_type=str(msg.type))
                 payload = json.loads(msg.data) if msg.type == WSMsgType.TEXT else {}
                 if payload.get('type') != 'auth' or not isinstance(payload.get('token'),str) or not secrets.compare_digest(payload['token'], self.token):
+                    event('ws.auth.rejected', reason='invalid_token')
                     await ws.close(code=1008, message=b'Pairing token invalid')
                     return ws
                 self.ws = ws
+                event('ws.auth.accepted')
                 self.observer('Dashboard gekoppelt','Automatische Verbindung hergestellt.')
                 self.session_generation += 1
                 self.hotkeys_paused = False
                 print('Dashboard gekoppelt (' + ('DEMO' if self.demo else 'LIVE') + ').', flush=True)
-                await self.send({'type':'ready','version':VERSION,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
+                await self.send({'type':'ready','version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
                 await self.configure_hotkeys()
                 async with self.lock:
                     try:
@@ -372,27 +390,36 @@ class Bridge:
                 async for msg in ws:
                     if msg.type != WSMsgType.TEXT: continue
                     data = {}
+                    started = time.monotonic()
                     try:
                         data = json.loads(msg.data)
                         if not isinstance(data,dict) or not isinstance(data.get('id'),str) or len(data['id']) > 80:
                             raise ValueError('Ungültige Anfrage.')
                         args = data.get('args',{})
                         if not isinstance(args,dict): raise ValueError('Argumente müssen ein Objekt sein.')
+                        event('command.begin', id=data['id'], op=data.get('op'))
                         result = await self.dispatch(data.get('op'),args)
+                        event('command.complete', id=data['id'], op=data.get('op'), elapsed_ms=round((time.monotonic()-started)*1000))
                         if data.get('op') == 'scan':
                             await self.log(f'Client-Suche: {len(result)} Spielclients gefunden.' + (' Wizard101 bis zur Charakterauswahl öffnen und erneut suchen.' if not result else ''))
                             for error in getattr(self.adapter,'scan_errors',[]):
                                 await self.log(error, 'error')
                         if data.get('op') in {'hook','unhook','scan'}:await self.configure_hotkeys()
                         await self.send({'type':'result','id':data['id'],'ok':True,'data':result})
-                        if data.get('op') not in {'get_settings','set_settings','pause_hotkeys','shortcut_context'}:
+                        if data.get('op') not in {'get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics'}:
                             async with self.lock: await self.state()
                     except Exception as exc:
+                        logger.exception('command.failed op=%s', data.get('op') if isinstance(data,dict) else 'invalid')
                         await self.send({'type':'result','id':data.get('id') if isinstance(data,dict) else None,'ok':False,'error':f'{type(exc).__name__}: {exc}'})
                         await self.log(str(exc), 'error')
             except (TimeoutError, json.JSONDecodeError):
+                logger.exception('ws.auth.handshake_failed')
                 await ws.close(code=1008,message=b'Invalid auth handshake')
+            except Exception:
+                logger.exception('ws.session.failed')
+                raise
             finally:
+                event('ws.cleanup.begin', close_code=ws.close_code, exception=str(ws.exception()) if ws.exception() else None)
                 if poll:
                     poll.cancel()
                     with contextlib.suppress(asyncio.CancelledError): await poll
@@ -410,6 +437,7 @@ class Bridge:
                     self.ws = None
                     self.observer('Unhook-Fehler' if self.cleanup_error else 'Dashboard getrennt',self.cleanup_error or 'Hooks entfernt · Dashboard öffnen zum erneuten Koppeln.')
                     print('Dashboard getrennt; Skript- und Hook-Aufraeumen abgeschlossen.' if not self.cleanup_error else 'Dashboard getrennt; Unhook-Fehler im Protokoll beachten.', flush=True)
+                event('ws.cleanup.complete', error=self.cleanup_error)
             return ws
 
     async def shutdown(self, app):
@@ -423,16 +451,32 @@ class Bridge:
 
 
 def create_app(bridge, web_dir):
-    app = web.Application(client_max_size=65536)
+    @web.middleware
+    async def trace_http(request, handler):
+        try:
+            response = await handler(request)
+            event('http', method=request.method, path=request.path, status=response.status)
+            return response
+        except web.HTTPException as exc:
+            event('http', method=request.method, path=request.path, status=exc.status)
+            raise
+        except Exception:
+            logger.exception('http.failed path=%s', request.path)
+            raise
+    app = web.Application(client_max_size=65536, middlewares=[trace_http])
     app.router.add_get('/ws',bridge.websocket)
     async def index(request):
         return web.FileResponse(web_dir/'index.html')
     async def health(request):
-        return web.json_response({'service':'mythic-walker','version':VERSION,'demo':bridge.demo})
+        headers = {'Cache-Control':'no-store'}
+        if request.headers.get('Origin') in bridge.origins:
+            headers['Access-Control-Allow-Origin'] = request.headers['Origin']
+            headers['Vary'] = 'Origin'
+        return web.json_response({'service':'mythic-walker','version':VERSION,'release':RELEASE_TAG,'demo':bridge.demo,'connected':bool(bridge.ws is not None and not bridge.ws.closed)}, headers=headers)
     app.router.add_get('/health',health)
     app.router.add_get('/',index)
     # Serve only the explicit frontend assets, never bridge source/certificates.
-    for filename in ['app.js','settings.js','tools.js','style.css','sources.json']:
+    for filename in ['app.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
     # Only public, packaged icon assets; never expose other bridge directories.
@@ -448,6 +492,8 @@ def main():
     parser.add_argument('--generate-cert',action='store_true')
     parser.add_argument('--origin',default=SITE_ORIGIN)
     args = parser.parse_args()
+    log_path = start_logging(ROOT/'logs')
+    print('Diagnose-Log:',log_path,flush=True)
     cert_dir = (Path(sys.executable).parent if getattr(sys,'frozen',False) else ROOT)/'certs'
     cert,key = ensure_cert(cert_dir)
     if args.generate_cert:

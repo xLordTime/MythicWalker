@@ -1,4 +1,10 @@
-# Mythic Walker · 0.1.1 Beta 6
+# Mythic Walker · 0.1.1 Beta 7
+
+## Diagnose (Beta 7)
+
+Behebt einen Initialisierungsfehler durch fehlende Script-Tags, der die automatische Kopplung verhindern konnte. Tests verwenden jetzt die reale HTML-Ladefolge. Unter **Bridge → Verbindung testen / Diagnose herunterladen** stehen Browser-Logs auch ohne Kopplung zur Verfügung. Bei erfolgreicher Kopplung enthält `MythicWalker-Diagnose.json` zusätzlich native Logs.
+
+EXE: `%LOCALAPPDATA%\MythicWalker\bridge.log`; Python-Starter: `bridge/logs/bridge.log`. Rotation: 2 MB, drei Backups. Logs enthalten Zeit, Thread, Release, Startschritte, Netzwerkereignisse, Client-PIDs, Hook-Phasen, Befehle ohne Payload, Laufzeiten und Fehlerspuren. Pairing-Codes werden redigiert. Browser-Logs sind auf 1000 Einträge begrenzt und bleiben im selben Tab über Neuladen erhalten. Diagnoseexport erfolgt nur auf Klick; es wird nichts automatisch hochgeladen.
 
 ## Client-Erkennung (Beta 6)
 
@@ -29,7 +35,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.6` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.7` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 
