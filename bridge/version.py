@@ -1,3 +1,3 @@
 VERSION = '0.1.1'
 CHANNEL = 'beta'
-RELEASE_TAG = 'v0.1.1-beta.1'
+RELEASE_TAG = 'v0.1.1-beta.2'

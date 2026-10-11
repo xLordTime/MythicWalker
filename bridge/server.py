@@ -379,6 +379,9 @@ def create_app(bridge, web_dir):
     for filename in ['app.js','settings.js','tools.js','style.css','sources.json']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
+    # Only public, packaged icon assets; never expose other bridge directories.
+    if (web_dir/'assets').is_dir():
+        app.router.add_static('/assets/',web_dir/'assets',show_index=False,follow_symlinks=False)
     app.on_shutdown.append(bridge.shutdown)
     return app
 

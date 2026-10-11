@@ -2,6 +2,8 @@
 import ctypes
 from ctypes import wintypes as W
 import queue
+from pathlib import Path
+import sys
 
 class StatusWidget:
     def __init__(self,version):
@@ -30,6 +32,12 @@ class StatusWidget:
             'SystemParametersInfoW':([W.UINT,W.UINT,ptr,W.UINT],W.BOOL)}
         for name,(args,result) in signatures.items():fn=getattr(user,name);fn.argtypes=args;fn.restype=result
         kernel.GetModuleHandleW.argtypes=[W.LPCWSTR];kernel.GetModuleHandleW.restype=W.HMODULE
+        user.LoadImageW.argtypes=[W.HINSTANCE,W.LPCWSTR,W.UINT,ctypes.c_int,ctypes.c_int,W.UINT];user.LoadImageW.restype=W.HANDLE
+        user.DrawIconEx.argtypes=[W.HDC,ctypes.c_int,ctypes.c_int,W.HICON,ctypes.c_int,ctypes.c_int,W.UINT,W.HBRUSH,W.UINT];user.DrawIconEx.restype=W.BOOL
+        user.DestroyIcon.argtypes=[W.HICON];user.DestroyIcon.restype=W.BOOL
+        icon_path=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'assets'/'mythicwalker.ico'
+        app_icon=user.LoadImageW(None,str(icon_path),1,32,32,0x10)
+        if not app_icon:raise ctypes.WinError(ctypes.get_last_error())
         gdi.CreateSolidBrush.argtypes=[W.DWORD];gdi.CreateSolidBrush.restype=W.HBRUSH
         gdi.SelectObject.argtypes=[W.HDC,W.HANDLE];gdi.SelectObject.restype=W.HANDLE
         gdi.SetTextColor.argtypes=[W.HDC,W.DWORD];gdi.SetBkMode.argtypes=[W.HDC,ctypes.c_int]
@@ -43,7 +51,8 @@ class StatusWidget:
             if msg==0x000F:
                 paint=PAINT();hdc=user.BeginPaint(hwnd,ctypes.byref(paint));rect=W.RECT(0,0,360,250);user.FillRect(hdc,ctypes.byref(rect),bg)
                 gdi.SetBkMode(hdc,1);gdi.SelectObject(hdc,gdi.GetStockObject(17))
-                text(hdc,'✧  MYTHIC WALKER  ·  '+self.version,20,16,320,22,0xFFADBC)
+                user.DrawIconEx(hdc,18,13,app_icon,28,28,0,None,3)
+                text(hdc,'MYTHIC WALKER  ·  '+self.version,57,18,283,22,0xFFADBC)
                 text(hdc,self.title,20,50,320,28);text(hdc,self.detail,20,80,320,45,0xB0989B)
                 for i,step in enumerate(self.steps[-3:]):text(hdc,'✓  '+step,20,132+i*19,320,19,0xC5DC8D)
                 for left,label in [(20,'Dashboard öffnen'),(202,'Beenden')]:
@@ -67,7 +76,7 @@ class StatusWidget:
             if msg==0x0002:user.PostQuitMessage(0);return 0
             return user.DefWindowProcW(hwnd,msg,wp,lp)
         instance=kernel.GetModuleHandleW(None);name='MythicWalkerStatus'
-        wc=WC(0,proc,0,0,instance,None,None,bg,None,name)
+        wc=WC(0,proc,0,0,instance,app_icon,None,bg,None,name)
         if not user.RegisterClassW(ctypes.byref(wc)):raise ctypes.WinError(ctypes.get_last_error())
         work=W.RECT();user.SystemParametersInfoW(48,0,ctypes.byref(work),0)
         hwnd=user.CreateWindowExW(0x08000088,name,'Mythic Walker',0x80000000,work.right-378,work.bottom-268,360,250,None,None,instance,None)
@@ -76,4 +85,4 @@ class StatusWidget:
         message=W.MSG()
         try:
             while user.GetMessageW(ctypes.byref(message),None,0,0)>0:user.TranslateMessage(ctypes.byref(message));user.DispatchMessageW(ctypes.byref(message))
-        finally:gdi.DeleteObject(button);gdi.DeleteObject(bg)
+        finally:gdi.DeleteObject(button);gdi.DeleteObject(bg);user.DestroyIcon(app_icon)

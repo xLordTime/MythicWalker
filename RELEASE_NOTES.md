@@ -1,3 +1,10 @@
+## 0.1.1 Beta 2 · Projekt-Icons
+
+- Eigenes App-Icon: arkane Kompassrose mit M-Monogramm.
+- Windows-EXE, Status-Widget, Browser-Favicon und Dashboard verwenden dieselbe Identität.
+- Passende SVG-Symbole für Bewegung, Kampf, Questing, Dialoge, Sigil und Freecam.
+- Enthält alle Funktionen und Einstellungen der Beta 1.
+
 # Mythic Walker 0.1.1 Beta 1
 
 Erste GitHub-Vorabversion: eigenständige Windows-EXE mit Status-Widget rechts unten,
