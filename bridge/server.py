@@ -58,7 +58,7 @@ def ensure_cert(directory):
 
 
 class Bridge:
-    def __init__(self, adapter, token, origins, demo=False, settings_path=None, observer=None):
+    def __init__(self, adapter, token, origins, demo=False, settings_path=None, observer=None, widget=None):
         self.adapter, self.token, self.origins, self.demo = adapter, token, set(origins), demo
         self.lock = asyncio.Lock()
         self.session_lock = asyncio.Lock()
@@ -67,6 +67,8 @@ class Bridge:
         self.shutting_down = False
         self.cleanup_error = None
         self.settings = Settings(settings_path)
+        self.widget = widget
+        if widget:widget.configure(self.settings.data['widget'])
         self.hotkeys = Hotkeys()
         self.shortcut_context = {'ids':[], 'source':''}
         self.hotkey_busy = False
@@ -228,10 +230,17 @@ class Bridge:
             raise ValueError('Bridge nach Unhook-Fehler neu starten: ' + self.cleanup_error)
         if op=='movement':return await self.movement(args.get('action'),args)
         if op=='automation':return await self.automations.toggle(args.get('mode'),args.get('ids'),args.get('enabled'))
+        if op == 'widget':
+            if not self.widget:raise ValueError('Widget-Steuerung benötigt die Windows-EXE.')
+            action=args.get('action')
+            if action not in {'show','hide','toggle'}:raise ValueError('Ungültige Widget-Aktion.')
+            self.widget.visibility(action)
+            return {'queued':True}
         if op == 'get_settings':
             return {'settings':self.settings.data, 'hotkeys':self.hotkeys.status}
         if op == 'set_settings':
             self.settings.save(args.get('settings'))
+            if self.widget:self.widget.configure(self.settings.data['widget'])
             return {'settings':self.settings.data, 'hotkeys':await self.configure_hotkeys()}
         if op == 'pause_hotkeys':
             if type(args.get('paused')) is not bool: raise ValueError('paused muss boolesch sein.')

@@ -8,3 +8,5 @@ body[data-accent=teal] .button.primary,body[data-accent=gold] .button.primary{ba
 
 /* Shared Mythic Walker identity */
 .brand-icon{padding:0;background:none!important;border:0!important;box-shadow:none!important}.brand-icon img{display:block;width:100%;height:100%}.workspace-icon img{display:block;width:28px;height:28px}.movement-action>.icon{width:24px;height:24px;color:var(--accent)}.client-emblem>.icon{width:23px;height:23px}
+
+.widget-settings{margin-bottom:22px}.widget-settings .actions{margin-top:20px}.widget-settings label small{display:block;color:var(--muted);font-size:11px;margin-top:7px}

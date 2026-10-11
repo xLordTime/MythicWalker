@@ -8,6 +8,7 @@ from pathlib import Path
 BINDINGS={'scan':'Ctrl+Alt+S','hook':'Ctrl+Alt+H','unhook':'Ctrl+Alt+U','interact':'X','sync':'F8','quest_tp':'F7','quest_all':'F6','speed_toggle':'F5','combat_toggle':'9','dialogue_toggle':'F4','questing_toggle':'F3','sigil_toggle':'F2','freecam':'F1','camera_tp':'Shift+F1','run_script':'Ctrl+Alt+R','stop':'Ctrl+Alt+F8','forward':'Ctrl+Alt+W'}
 ACTIONS=tuple(BINDINGS)
 DEFAULTS={'global_hotkeys':True,'poll_seconds':2,'key_seconds':0.2,'bindings':BINDINGS,
+ 'widget':{'hotkey':'F10','start_hidden':False,'topmost':True},
  'movement':{'scope':'all','speed_percent':100,'navmap_target':'auto','navmap_timeout':20,'freecam_scope':'leader'},
  'automation':{'interval':1,'max_minutes':15,'combat_rules':'any<aoe>@enemy\npass','combat_pass':True,'quest_accept':True,'quest_forward':False,'quest_distance':150,'sigil_rejoin':True,'sigil_confirm':True,'sigil_cooldown':5}}
 
@@ -47,6 +48,11 @@ def validate(data):
     if not isinstance(data['bindings'],dict) or set(data['bindings'])!=set(ACTIONS):raise ValueError('Ungültige Shortcut-Aktionen.')
     result['bindings']={a:combo(data['bindings'][a]) for a in ACTIONS};used=[v for v in result['bindings'].values() if v]
     if len(used)!=len(set(used)):raise ValueError('Jeder Shortcut darf nur einer Aktion zugewiesen sein.')
+    w=data['widget']
+    if not isinstance(w,dict) or set(w)!=set(DEFAULTS['widget']):raise ValueError('Ungültige Widget-Einstellungen.')
+    result['widget']['hotkey']=combo(w['hotkey'])
+    if any(type(w[k]) is not bool for k in ['start_hidden','topmost']):raise ValueError('Widget-Schalter müssen boolesch sein.')
+    if result['widget']['hotkey'] and result['widget']['hotkey'] in used:raise ValueError('Widget-Shortcut ist bereits einer Spielaktion zugewiesen.')
     m=data['movement'];a=data['automation']
     if not isinstance(m,dict) or set(m)!=set(DEFAULTS['movement']):raise ValueError('Ungültige Movement-Einstellungen.')
     if m['scope'] not in {'all','selected'} or m['navmap_target'] not in {'auto','own','leader'} or m['freecam_scope'] not in {'leader','selected'}:raise ValueError('Ungültiger Movement-Modus.')
@@ -67,6 +73,7 @@ def migrate(data):
         if k in data:
             if isinstance(DEFAULTS[k],dict) and isinstance(data[k],dict):result[k].update({n:v for n,v in data[k].items() if n in DEFAULTS[k]})
             else:result[k]=data[k]
+    if 'widget' not in data and result['widget']['hotkey'] in result['bindings'].values():result['widget']['hotkey']=''
     return validate(result)
 
 class Settings:

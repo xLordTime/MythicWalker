@@ -19,6 +19,7 @@ from adapter import WizAdapter, DemoAdapter
 from updater import check_and_install, launch_update
 from version import VERSION, CHANNEL, RELEASE_TAG
 from widget import StatusWidget
+from settings import Settings
 
 
 def handoff_url(token,origin=SITE_ORIGIN):
@@ -38,9 +39,14 @@ def main():
     if sys.platform!='win32':raise RuntimeError('Desktop-App benötigt Windows.')
     if '--smoke-test' in sys.argv:
         widget=StatusWidget(VERSION+' Beta');widget.report('Native UI Smoke Test','Fenster, Zeichnen und Schließen prüfen.')
-        threading.Timer(1,widget.finish).start();widget.run();return
+        threading.Timer(.3,lambda:widget.visibility('hide')).start()
+        threading.Timer(.5,lambda:widget.visibility('show')).start()
+        threading.Timer(.7,lambda:widget.events.put(('smoke','',''))).start()
+        threading.Timer(1.2,widget.finish).start();widget.run()
+        if widget.hidden or widget.smoke_toggles!=2:raise RuntimeError('Widget hide/show smoke test failed.')
+        return
     root=Path(os.environ.get('LOCALAPPDATA',Path.home()))/'MythicWalker';root.mkdir(parents=True,exist_ok=True)
-    widget=StatusWidget(VERSION+' Beta');stop=threading.Event();finished=threading.Event();launch={'url':SITE_ORIGIN}
+    widget=StatusWidget(VERSION+' Beta');widget.configure(Settings(root/'user-settings.json').data['widget']);stop=threading.Event();finished=threading.Event();launch={'url':SITE_ORIGIN}
     widget.browser=lambda:webbrowser.open(launch['url'])
     def close():
         widget.report('Bridge beenden','Automatik stoppen und Hooks entfernen …');stop.set()
@@ -50,7 +56,7 @@ def main():
         widget.report('Zertifikat vorbereiten','Lokale Verbindung für diesen Windows-Benutzer.')
         cert,key=ensure_cert(root/'certs');await asyncio.to_thread(trust_certificate,cert)
         token=secrets.token_urlsafe(24)
-        bridge=Bridge(DemoAdapter() if '--demo' in sys.argv else WizAdapter(),token,[SITE_ORIGIN,'https://localhost:18761','https://127.0.0.1:18761'],'--demo' in sys.argv,settings_path=root/'user-settings.json',observer=widget.report)
+        bridge=Bridge(DemoAdapter() if '--demo' in sys.argv else WizAdapter(),token,[SITE_ORIGIN,'https://localhost:18761','https://127.0.0.1:18761'],'--demo' in sys.argv,settings_path=root/'user-settings.json',observer=widget.report,widget=widget)
         tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);tls.minimum_version=ssl.TLSVersion.TLSv1_2;tls.load_cert_chain(cert,key)
         web_dir=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'web'
         runner=web.AppRunner(create_app(bridge,web_dir));await runner.setup()

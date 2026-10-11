@@ -1,3 +1,11 @@
+## 0.1.1 Beta 4 · Widget-Steuerung
+
+- Minus-Schaltfläche versteckt das Widget im Windows-Infobereich.
+- F10 blendet das Widget global aus/ein, auch ohne Hook oder Dashboard-Verbindung.
+- Tray-Symbol zeigt das Widget wieder; Bridge und Hooks laufen beim Verstecken weiter.
+- Neue Web-Settings: bearbeitbarer Shortcut, versteckt starten und immer im Vordergrund.
+- Widget direkt im Dashboard anzeigen/verstecken. Bestehende Settings werden migriert.
+
 ## 0.1.1 Beta 3 · Maus- und Kamera-Fix
 
 - Hooken aktiviert keinen dauerhaften Mouseless-Cursor-Hook mehr.

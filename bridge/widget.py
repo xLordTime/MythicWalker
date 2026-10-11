@@ -4,14 +4,19 @@ from ctypes import wintypes as W
 import queue
 from pathlib import Path
 import sys
+from hotkeys import key_code
+from settings import DEFAULTS, combo
 
 class StatusWidget:
     def __init__(self,version):
         self.version=version;self.events=queue.Queue();self.title='Bridge startet';self.detail='Bitte einen Moment …'
         self.steps=[];self.browser=lambda:None;self.stop=lambda:None;self.closing=False
+        self.config=dict(DEFAULTS['widget']);self.hidden=False;self.smoke_toggles=0
     def report(self,title,detail=''):
         self.events.put(('status',title,str(detail)[:220]))
     def finish(self):self.events.put(('finish','',''))
+    def configure(self,config):self.events.put(('configure',dict(config),''))
+    def visibility(self,action):self.events.put(('visibility',action,''))
     def run(self):
         user=ctypes.WinDLL('user32',use_last_error=True);gdi=ctypes.WinDLL('gdi32');kernel=ctypes.WinDLL('kernel32')
         ptr=ctypes.c_void_p
@@ -43,16 +48,53 @@ class StatusWidget:
         gdi.SetTextColor.argtypes=[W.HDC,W.DWORD];gdi.SetBkMode.argtypes=[W.HDC,ctypes.c_int]
         gdi.GetStockObject.argtypes=[ctypes.c_int];gdi.GetStockObject.restype=W.HANDLE
         gdi.DeleteObject.argtypes=[W.HANDLE]
+        user.RegisterHotKey.argtypes=[W.HWND,ctypes.c_int,W.UINT,W.UINT];user.RegisterHotKey.restype=W.BOOL
+        user.UnregisterHotKey.argtypes=[W.HWND,ctypes.c_int];user.UnregisterHotKey.restype=W.BOOL
+        user.SetWindowPos.argtypes=[W.HWND,W.HWND,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_int,W.UINT];user.SetWindowPos.restype=W.BOOL
+        user.SendMessageW.argtypes=[W.HWND,W.UINT,ctypes.c_size_t,ctypes.c_ssize_t];user.SendMessageW.restype=ctypes.c_ssize_t
+        user.RegisterWindowMessageW.argtypes=[W.LPCWSTR];user.RegisterWindowMessageW.restype=W.UINT
+        # The V1 notification layout is sufficient for icon, callback and tooltip.
+        class TRAY(ctypes.Structure):
+            _fields_=[('size',W.DWORD),('hwnd',W.HWND),('ident',W.UINT),('flags',W.UINT),('message',W.UINT),('icon',W.HICON),('tip',W.WCHAR*64)]
+        shell=ctypes.WinDLL('shell32',use_last_error=True)
+        shell.Shell_NotifyIconW.argtypes=[W.DWORD,ctypes.POINTER(TRAY)];shell.Shell_NotifyIconW.restype=W.BOOL
+        hotkey_id=0x5A10;hotkey_registered=False;tray_ready=False;tray=None
+        taskbar_created=user.RegisterWindowMessageW('TaskbarCreated')
+        def show(action):
+            hidden=not self.hidden if action=='toggle' else action=='hide'
+            if hidden and not tray_ready and not hotkey_registered:
+                self.report('Widget bleibt sichtbar','Tray und Shortcut nicht verfügbar.');return
+            self.hidden=hidden
+            user.ShowWindow(hwnd,0 if self.hidden else 4)
+        def configure(config):
+            nonlocal hotkey_registered
+            binding=combo(config['hotkey'])
+            if hotkey_registered:user.UnregisterHotKey(hwnd,hotkey_id)
+            hotkey_registered=False;self.config=dict(config)
+            if binding:
+                parts=binding.split('+');mods=0x4000
+                for name in parts[:-1]:mods|={'Ctrl':2,'Alt':1,'Shift':4}[name]
+                hotkey_registered=bool(user.RegisterHotKey(hwnd,hotkey_id,mods,key_code(parts[-1])))
+                if not hotkey_registered:self.report('Widget-Shortcut belegt','Andere Taste in Settings wählen. Tray-Symbol zeigt das Widget wieder.')
+            user.SetWindowPos(hwnd,W.HWND(-1 if config['topmost'] else -2),0,0,0,0,0x13)
         bg=gdi.CreateSolidBrush(0x24191A);button=gdi.CreateSolidBrush(0x49312F)
         def text(hdc,value,x,y,width,height,color=0xF7EDEE):
             gdi.SetTextColor(hdc,color);rect=W.RECT(x,y,x+width,y+height);user.DrawTextW(hdc,value,-1,ctypes.byref(rect),0x10|0x800)
         @CALLBACK
         def proc(hwnd,msg,wp,lp):
+            nonlocal tray_ready
+            if msg==taskbar_created and tray is not None:
+                tray_ready=bool(shell.Shell_NotifyIconW(0,ctypes.byref(tray)))
+                if not tray_ready:show('show')
+                return 0
+            if msg==0x8001 and lp in (0x0202,0x0205):show('show');return 0
+            if msg==0x0312 and wp==hotkey_id:show('toggle');return 0
             if msg==0x000F:
                 paint=PAINT();hdc=user.BeginPaint(hwnd,ctypes.byref(paint));rect=W.RECT(0,0,360,250);user.FillRect(hdc,ctypes.byref(rect),bg)
                 gdi.SetBkMode(hdc,1);gdi.SelectObject(hdc,gdi.GetStockObject(17))
                 user.DrawIconEx(hdc,18,13,app_icon,28,28,0,None,3)
-                text(hdc,'MYTHIC WALKER  ·  '+self.version,57,18,283,22,0xFFADBC)
+                text(hdc,'MYTHIC WALKER  ·  '+self.version,57,18,247,22,0xFFADBC)
+                text(hdc,'−',320,16,25,24,0xFFADBC)
                 text(hdc,self.title,20,50,320,28);text(hdc,self.detail,20,80,320,45,0xB0989B)
                 for i,step in enumerate(self.steps[-3:]):text(hdc,'✓  '+step,20,132+i*19,320,19,0xC5DC8D)
                 for left,label in [(20,'Dashboard öffnen'),(202,'Beenden')]:
@@ -63,11 +105,21 @@ class StatusWidget:
                     try:kind,title,detail=self.events.get_nowait()
                     except queue.Empty:break
                     if kind=='finish':user.DestroyWindow(hwnd);return 0
+                    if kind=='configure':configure(title);continue
+                    if kind=='visibility':show(title);continue
+                    if kind=='smoke':
+                        user.SendMessageW(hwnd,0x0312,hotkey_id,0)
+                        if not self.hidden:raise RuntimeError('Hotkey did not hide widget')
+                        self.smoke_toggles+=1
+                        user.SendMessageW(hwnd,0x0312,hotkey_id,0)
+                        if self.hidden:raise RuntimeError('Hotkey did not show widget')
+                        self.smoke_toggles+=1;continue
                     if title!=self.title and self.title not in ('Bridge startet','Fehler'):self.steps.append(self.title);self.steps=self.steps[-6:]
                     self.title,self.detail=title,detail
                 user.InvalidateRect(hwnd,None,False);return 0
             if msg==0x0202:
                 x,y=lp&0xffff,(lp>>16)&0xffff
+                if 314<=x<=348 and 10<=y<=43:show('hide');return 0
                 if 204<=y<=237:
                     if 20<=x<=158:self.browser()
                     elif 202<=x<=340:self.stop()
@@ -81,8 +133,21 @@ class StatusWidget:
         work=W.RECT();user.SystemParametersInfoW(48,0,ctypes.byref(work),0)
         hwnd=user.CreateWindowExW(0x08000088,name,'Mythic Walker',0x80000000,work.right-378,work.bottom-268,360,250,None,None,instance,None)
         if not hwnd:raise ctypes.WinError(ctypes.get_last_error())
-        user.SetTimer(hwnd,1,150,None);user.ShowWindow(hwnd,4)
+        tray=TRAY(ctypes.sizeof(TRAY),hwnd,1,7,0x8001,app_icon,'Mythic Walker · Klicken zum Anzeigen')
+        tray_ready=bool(shell.Shell_NotifyIconW(0,ctypes.byref(tray)))
+        # Load queued preferences before choosing the initial visibility.
+        pending=[]
+        while not self.events.empty():
+            event=self.events.get_nowait()
+            if event[0]=='configure':self.config=event[1]
+            else:pending.append(event)
+        for event in pending:self.events.put(event)
+        configure(self.config)
+        user.SetTimer(hwnd,1,150,None);show('hide' if self.config['start_hidden'] else 'show')
         message=W.MSG()
         try:
             while user.GetMessageW(ctypes.byref(message),None,0,0)>0:user.TranslateMessage(ctypes.byref(message));user.DispatchMessageW(ctypes.byref(message))
-        finally:gdi.DeleteObject(button);gdi.DeleteObject(bg);user.DestroyIcon(app_icon)
+        finally:
+            if hotkey_registered:user.UnregisterHotKey(hwnd,hotkey_id)
+            if tray is not None:shell.Shell_NotifyIconW(2,ctypes.byref(tray))
+            gdi.DeleteObject(button);gdi.DeleteObject(bg);user.DestroyIcon(app_icon)
