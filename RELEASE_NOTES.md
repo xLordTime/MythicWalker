@@ -1,3 +1,11 @@
+## 0.1.1 Beta 6 · Client-Erkennung
+
+- Windows-Fenstersuche mit pointerbreiten HWNDs und korrekt dimensioniertem Klassenpuffer.
+- Fehlgeschlagener Prozesszugriff blockiert spätere Suchläufe nicht mehr; andere Clients bleiben verfügbar.
+- Ein Fehler bei der ersten Suche trennt das Dashboard nicht mehr. Zugriffsmeldungen und die Anzahl gefundener Clients erscheinen im Aktivitätsprotokoll.
+- Das Öffnen des Browsers überschreibt keine bereits erfolgreiche Kopplung mit „Kopplung wartet“.
+- CI prüft auch die echte Windows-Fenstersuche; Wizard101-DE-Livebetrieb muss auf dem Spielrechner verifiziert werden.
+
 ## 0.1.1 Beta 5 · Bot- und Blockbibliothek
 
 - Minimales Control Center: Übersicht, Hooking, Tools, Skripte/Bot und Combat.

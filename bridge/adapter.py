@@ -18,6 +18,9 @@ class WizAdapter:
         self.original_speeds = {}
         self.combat_rounds = {}
         self.automation_data = {}
+        from windows_clients import wizard_windows
+        self.discover_windows = wizard_windows
+        self.scan_errors = []
 
     def clients(self):
         return {str(c.process_id): c for c in self.handler.clients if c.is_running()}
@@ -43,7 +46,26 @@ class WizAdapter:
             # ClientHandler otherwise retains dead window handles.
             if client.window_handle in self.handler._managed_handles:
                 self.handler._managed_handles.remove(client.window_handle)
-        self.handler.get_new_clients()
+        # Upstream uses a 32-bit HWND callback and an undersized class buffer.
+        # Register a handle only AFTER Client construction succeeds, so an
+        # access-denied or startup race does not poison every later scan.
+        handles = self.discover_windows()
+        self.scan_errors = []
+        managed = {client.window_handle for client in self.handler.clients}
+        self.handler._managed_handles[:] = list(managed)
+        for handle in handles:
+            if handle in managed:
+                continue
+            try:
+                client = self.handler.client_cls(handle)
+            except Exception as exc:
+                self.scan_errors.append(f'Fenster {handle}: {type(exc).__name__}: {exc}')
+                continue
+            self.handler.clients.append(client)
+            self.handler._managed_handles.append(handle)
+            managed.add(handle)
+        if self.scan_errors and not self.handler.clients:
+            raise RuntimeError('Spiel gefunden, Zugriff fehlgeschlagen. Bridge und Spiel mit denselben Windows-Rechten starten. ' + '; '.join(self.scan_errors))
         return await self.snapshot()
 
     async def hook(self, ids):

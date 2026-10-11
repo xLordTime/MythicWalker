@@ -66,7 +66,8 @@ def main():
             launch['url']=handoff_url(token)
             widget.report('Browser öffnen','Dashboard wird automatisch gekoppelt.')
             await asyncio.to_thread(webbrowser.open,launch['url'])
-            widget.report('Kopplung wartet','Falls nötig im Browser anmelden und lokalen Netzwerkzugriff erlauben.')
+            if bridge.ws is None or bridge.ws.closed:
+                widget.report('Kopplung wartet','Falls nötig im Browser anmelden und lokalen Netzwerkzugriff erlauben.')
             while not stop.is_set():await asyncio.sleep(.2)
         finally:await runner.cleanup()
     def worker():

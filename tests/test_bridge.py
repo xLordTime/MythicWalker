@@ -96,6 +96,18 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         async with asyncio.timeout(3):
             while self.bridge.session_lock.locked():await asyncio.sleep(.01)
         self.assertFalse(any(r['hooked'] for r in self.bridge.adapter.rows))
+
+    async def test_initial_scan_failure_keeps_session_for_retry(self):
+        original = self.bridge.adapter.scan
+        expected = await original()
+        self.bridge.adapter.scan = AsyncMock(side_effect=[PermissionError('access denied'), expected])
+        ws = await self.connect()
+        self.assertEqual((await ws.receive_json())['type'], 'ready')
+        result = await self.request(ws, 'scan')
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['data'], expected)
+        self.assertFalse(ws.closed)
+        await ws.close()
     async def test_stop_and_script_validation(self):
         ws=await self.connect();await ws.receive_json();await self.request(ws,'hook',{'ids':['9001']})
         invalid=await self.request(ws,'run_script',{'ids':['9001'],'source':'p2 sendkey X 0.1'})

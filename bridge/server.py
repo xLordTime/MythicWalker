@@ -362,7 +362,10 @@ class Bridge:
                 await self.send({'type':'ready','version':VERSION,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
                 await self.configure_hotkeys()
                 async with self.lock:
-                    await self.adapter.scan()
+                    try:
+                        await self.adapter.scan()
+                    except Exception as exc:
+                        await self.log(f'Client-Suche: {type(exc).__name__}: {exc}', 'error')
                     await self.state()
                 await self.log('Bridge verbunden. ' + ('DEMO – keine Spielverbindung.' if self.demo else 'Wizard101 öffnen und Clients suchen.'))
                 poll = asyncio.create_task(self.poll())
@@ -376,6 +379,10 @@ class Bridge:
                         args = data.get('args',{})
                         if not isinstance(args,dict): raise ValueError('Argumente müssen ein Objekt sein.')
                         result = await self.dispatch(data.get('op'),args)
+                        if data.get('op') == 'scan':
+                            await self.log(f'Client-Suche: {len(result)} Spielclients gefunden.' + (' Wizard101 bis zur Charakterauswahl öffnen und erneut suchen.' if not result else ''))
+                            for error in getattr(self.adapter,'scan_errors',[]):
+                                await self.log(error, 'error')
                         if data.get('op') in {'hook','unhook','scan'}:await self.configure_hotkeys()
                         await self.send({'type':'result','id':data['id'],'ok':True,'data':result})
                         if data.get('op') not in {'get_settings','set_settings','pause_hotkeys','shortcut_context'}:
