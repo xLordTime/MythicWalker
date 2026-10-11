@@ -325,7 +325,24 @@ class WizAdapter:
                 if not await c.game_client.is_freecam():raise ValueError('Zuerst Freecam aktivieren.')
                 camera=await c.game_client.free_camera_controller()
                 if camera is None:raise ValueError('Freecam nicht verfügbar.')
-                p=await camera.position();await c.teleport(self.XYZ(*xyz([p.x,p.y,p.z])))
+                p=await camera.position();target=self.XYZ(*xyz([p.x,p.y,p.z]))
+                event('camera_tp.begin', pid=c.process_id, target=[target.x,target.y,target.z])
+                # Freecam patches out the movement update that consumes the
+                # teleport request. Keep the camera active; unfreeze only while
+                # that request is applied, then always restore its patch.
+                await c._unpatch_movement_update()
+                try:
+                    await c.teleport(target)
+                    async with asyncio.timeout(3):
+                        while True:
+                            actual=await c.body.position()
+                            if math.dist([actual.x,actual.y,actual.z],[target.x,target.y,target.z])<25:break
+                            await asyncio.sleep(.05)
+                    event('camera_tp.confirmed', pid=c.process_id, actual=[actual.x,actual.y,actual.z])
+                    result.append({'id':str(c.process_id),'position':[actual.x,actual.y,actual.z],'verified':True})
+                finally:
+                    await c._patch_movement_update()
+                    event('camera_tp.freecam_restored', pid=c.process_id)
             elif op == 'rename':c.title=text(args.get('title'),80)
             elif op == 'stats':
                 values={}

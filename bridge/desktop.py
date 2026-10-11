@@ -21,6 +21,7 @@ from version import VERSION, CHANNEL, RELEASE_TAG
 from widget import StatusWidget
 from settings import Settings
 from diagnostics import start_logging, event, logger, hide_secret
+from windows_desktop import copy_text, focus_dashboard
 
 
 def handoff_url(token,origin=SITE_ORIGIN):
@@ -40,6 +41,7 @@ def main():
     if sys.platform!='win32':raise RuntimeError('Desktop-App benötigt Windows.')
     if '--smoke-test' in sys.argv:
         widget=StatusWidget(VERSION+' Beta');widget.report('Native UI Smoke Test','Fenster, Zeichnen und Schließen prüfen.')
+        widget.copy_pairing=lambda:setattr(widget,'smoke_pairing',widget.smoke_pairing+1)
         threading.Timer(.3,lambda:widget.visibility('hide')).start()
         threading.Timer(.5,lambda:widget.visibility('show')).start()
         threading.Timer(.7,lambda:widget.events.put(('smoke','',''))).start()
@@ -48,13 +50,29 @@ def main():
         return
     root=Path(os.environ.get('LOCALAPPDATA',Path.home()))/'MythicWalker';root.mkdir(parents=True,exist_ok=True)
     start_logging(root)
-    widget=StatusWidget(RELEASE_TAG.removeprefix('v'));widget.configure(Settings(root/'user-settings.json').data['widget']);stop=threading.Event();finished=threading.Event();launch={'url':SITE_ORIGIN}
+    widget=StatusWidget(RELEASE_TAG.removeprefix('v'));widget.configure(Settings(root/'user-settings.json').data['widget']);stop=threading.Event();finished=threading.Event();launch={'url':SITE_ORIGIN,'token':None,'bridge':None,'loop':None}
     def open_browser():
+        bridge=launch['bridge'];loop=launch['loop']
+        if bridge is not None and bridge.ws is not None and not bridge.ws.closed:
+            asyncio.run_coroutine_threadsafe(bridge.send({'type':'dashboard_focus'}),loop)
+            focused=focus_dashboard()
+            event('browser.reuse', focused=focused)
+            widget.report('Dashboard bereits offen','Vorhandenen Browser-Tab verwenden. Rechtsklick kopiert den Pairing-Code.')
+            return True
         event('browser.open.begin', paired_link='#pair=' in launch['url'])
         result = webbrowser.open(launch['url'])
         event('browser.open.return', accepted=result)
         return result
     widget.browser=open_browser
+    def copy_pairing():
+        if not launch['token']:
+            widget.report('Pairing noch nicht bereit','Warte, bis die Bridge gestartet ist.');return
+        try:
+            copy_text(launch['token'],widget.hwnd);event('pairing.clipboard.copied')
+            widget.report('Pairing-Code kopiert','In der Weboberfläche unter Bridge mit Strg+V einfügen.')
+        except Exception as exc:
+            logger.exception('pairing.clipboard.failed');widget.report('Kopieren fehlgeschlagen',str(exc))
+    widget.copy_pairing=copy_pairing
     def close():
         widget.report('Bridge beenden','Automatik stoppen und Hooks entfernen …');stop.set()
         if finished.is_set():widget.finish()
@@ -66,6 +84,7 @@ def main():
         token=secrets.token_urlsafe(24)
         hide_secret(token)
         bridge=Bridge(DemoAdapter() if '--demo' in sys.argv else WizAdapter(),token,[SITE_ORIGIN,'https://localhost:18761','https://127.0.0.1:18761'],'--demo' in sys.argv,settings_path=root/'user-settings.json',observer=widget.report,widget=widget)
+        launch.update(token=token,bridge=bridge,loop=asyncio.get_running_loop())
         tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);tls.minimum_version=ssl.TLSVersion.TLSv1_2;tls.load_cert_chain(cert,key)
         web_dir=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'web'
         runner=web.AppRunner(create_app(bridge,web_dir));await runner.setup()

@@ -10,8 +10,8 @@ from settings import DEFAULTS, combo
 class StatusWidget:
     def __init__(self,version):
         self.version=version;self.events=queue.Queue();self.title='Bridge startet';self.detail='Bitte einen Moment …'
-        self.steps=[];self.browser=lambda:None;self.stop=lambda:None;self.closing=False
-        self.config=dict(DEFAULTS['widget']);self.hidden=False;self.smoke_toggles=0
+        self.steps=[];self.browser=lambda:None;self.copy_pairing=lambda:None;self.stop=lambda:None;self.closing=False
+        self.config=dict(DEFAULTS['widget']);self.hidden=False;self.smoke_toggles=0;self.smoke_pairing=0
     def report(self,title,detail=''):
         self.events.put(('status',title,str(detail)[:220]))
     def finish(self):self.events.put(('finish','',''))
@@ -108,6 +108,8 @@ class StatusWidget:
                     if kind=='configure':configure(title);continue
                     if kind=='visibility':show(title);continue
                     if kind=='smoke':
+                        user.SendMessageW(hwnd,0x0205,0,(220<<16)|50)
+                        if self.smoke_pairing!=1:raise RuntimeError('Dashboard right click did not call pairing copy')
                         user.SendMessageW(hwnd,0x0312,hotkey_id,0)
                         if not self.hidden:raise RuntimeError('Hotkey did not hide widget')
                         self.smoke_toggles+=1
@@ -124,6 +126,10 @@ class StatusWidget:
                     if 20<=x<=158:self.browser()
                     elif 202<=x<=340:self.stop()
                 return 0
+            if msg==0x0205:
+                x,y=lp&0xffff,(lp>>16)&0xffff
+                if 20<=x<=158 and 204<=y<=237:self.copy_pairing()
+                return 0
             if msg==0x0010:self.stop();return 0
             if msg==0x0002:user.PostQuitMessage(0);return 0
             return user.DefWindowProcW(hwnd,msg,wp,lp)
@@ -133,6 +139,7 @@ class StatusWidget:
         work=W.RECT();user.SystemParametersInfoW(48,0,ctypes.byref(work),0)
         hwnd=user.CreateWindowExW(0x08000088,name,'Mythic Walker',0x80000000,work.right-378,work.bottom-268,360,250,None,None,instance,None)
         if not hwnd:raise ctypes.WinError(ctypes.get_last_error())
+        self.hwnd=hwnd
         tray=TRAY(ctypes.sizeof(TRAY),hwnd,1,7,0x8001,app_icon,'Mythic Walker · Klicken zum Anzeigen')
         tray_ready=bool(shell.Shell_NotifyIconW(0,ctypes.byref(tray)))
         # Load queued preferences before choosing the initial visibility.

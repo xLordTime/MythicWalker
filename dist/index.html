@@ -10,7 +10,7 @@
 <link rel="icon" sizes="32x32" type="image/png" href="assets/mythicwalker-32.png">
 <link rel="apple-touch-icon" href="assets/mythicwalker-180.png">
 <link rel="stylesheet" href="style.css">
-<script defer src="diagnostics.js"></script><script defer src="settings.js"></script><script defer src="tools.js"></script><script defer src="default-library.js"></script><script defer src="botlang.js"></script><script defer src="bot-catalog.js"></script><script defer src="app.js"></script>
+<script defer src="diagnostics.js"></script><script defer src="settings.js"></script><script defer src="tools.js"></script><script defer src="default-library.js"></script><script defer src="botlang.js"></script><script defer src="bot-catalog.js"></script><script defer src="handoff.js"></script><script defer src="app.js"></script>
 </head>
 <body>
 <aside class="sidebar"><a class="brand" href="#overview"><span class="brand-icon"><img src="assets/mythicwalker.svg" alt="" width="44" height="44"></span><span>MYTHIC<span class="brand-sub">WALKER</span></span></a><div class="nav-label">CONTROL CENTER</div>
@@ -140,7 +140,7 @@
 <span class="eyebrow">WINDOWS · BETA 0.1.1</span><h2>Mythic Walker Bridge</h2>
 <p>Mit App-Icon, automatischer Kopplung, Updates und minimierbarem Widget. Python ist nicht erforderlich.</p>
 <div class="actions">
-<a class="button primary" href="https://github.com/xLordTime/MythicWalker/releases/download/v0.1.1-beta.7/MythicWalker.exe" data-icon="download">Windows-EXE herunterladen</a><a class="button" href="https://github.com/xLordTime/MythicWalker" target="_blank" rel="noopener">GitHub ↗</a><a class="text-button" href="https://github.com/xLordTime/MythicWalker/releases" target="_blank" rel="noopener">Alle Releases ↗</a>
+<a class="button primary" href="https://github.com/xLordTime/MythicWalker/releases/download/v0.1.1-beta.8/MythicWalker.exe" data-icon="download">Windows-EXE herunterladen</a><a class="button" href="https://github.com/xLordTime/MythicWalker" target="_blank" rel="noopener">GitHub ↗</a><a class="text-button" href="https://github.com/xLordTime/MythicWalker/releases" target="_blank" rel="noopener">Alle Releases ↗</a>
 </div>
 </div></article><article class="panel bridge-commands"><h2>Alternative · Python-Starter</h2>
 <p>Für den Start aus dem Quellcode. Starter entpacken, dann diese Befehle im Projektordner ausführen.</p>
@@ -153,7 +153,7 @@ bridge\Start-Bridge.cmd</pre></article><div class="setup-grid">
 <strong>EXE herunterladen &amp; starten</strong><p>MythicWalker.exe enthält die Bridge. Python muss dafür nicht installiert sein.</p>
 </li>
 <li>
-<strong>Browser automatisch verbinden</strong><p>Die App prüft Updates, richtet das lokale Zertifikat ein und öffnet dieses Dashboard mit einmaliger Kopplung. Das kleine Widget unten rechts zeigt den Fortschritt.</p>
+<strong>Browser automatisch verbinden</strong><p>Die App prüft Updates, richtet das lokale Zertifikat ein und öffnet dieses Dashboard mit einmaliger Kopplung. Das kleine Widget unten rechts zeigt den Fortschritt. Rechtsklick auf „Dashboard öffnen“ kopiert den aktuellen Pairing-Code.</p>
 </li>
 <li>
 <strong>Wizard101 öffnen &amp; Clients hooken</strong><p>Im Spiel einloggen, hier die Clients auswählen und hooken. Bewegung, Automatik und alle Einstellungen steuerst du über dieses Dashboard.</p>
@@ -165,7 +165,7 @@ bridge\Start-Bridge.cmd</pre></article><div class="setup-grid">
 <h2>Mit deiner Bridge koppeln</h2>
 <p>Der Code wird bei jedem Bridge-Start neu erzeugt und nur für diese Browser-Sitzung gehalten.</p>
 <label>Bridge-Adresse<input id="bridge-url" value="wss://localhost:18761/ws" readonly></label><label>Pairing-Code<input id="bridge-token" type="password" autocomplete="off" placeholder="Code aus dem Bridge-Fenster"></label><button class="button primary wide" id="connect-button" data-icon="link">Verbindung herstellen</button><button class="button wide" id="disconnect-button">Verbindung trennen</button><div id="pairing-result" class="pairing-result" role="status">Noch nicht verbunden.</div>
-<div class="actions"><button class="button compact" id="diagnostic-check">Verbindung testen</button><button class="button compact" id="diagnostic-download">Diagnose herunterladen</button></div><p id="diagnostic-status" class="muted small" role="status">Beta 7 · Browser-Logs sind auch ohne Kopplung exportierbar. EXE-Logs: %LOCALAPPDATA%\MythicWalker\bridge.log</p><div class="local-info">
+<div class="actions"><button class="button compact" id="diagnostic-check">Verbindung testen</button><button class="button compact" id="diagnostic-download">Diagnose herunterladen</button></div><p id="diagnostic-status" class="muted small" role="status">Beta 8 · Browser-Logs sind auch ohne Kopplung exportierbar. EXE-Logs: %LOCALAPPDATA%\MythicWalker\bridge.log</p><div class="local-info">
 <span class="dot"></span><div>
 <strong>Nur auf diesem PC</strong><small>Loopback · TLS · Origin-Prüfung · Pairing</small>
 </div>

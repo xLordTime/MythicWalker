@@ -1,3 +1,11 @@
+## 0.1.1 Beta 8 · Dashboard und Freecam-TP
+
+- Rechtsklick auf „Dashboard öffnen“ im Widget kopiert den aktiven Pairing-Code als Unicode in die Zwischenablage. Der Code wird nicht in Diagnose-Logs geschrieben.
+- Bereits gekoppelte Dashboards werden erneut angesprochen, ohne einen neuen Tab zu öffnen. Windows versucht, das Dashboard-Browserfenster in den Vordergrund zu bringen.
+- Ein neuer Kopplungsaufruf übergibt den Code per BroadcastChannel an einen bestehenden Tab derselben Origin und desselben Browserprofils. Der kurze Übergabe-Tab schließt sich, soweit der Browser dies erlaubt; sonst kann er manuell geschlossen werden. Ohne passenden Tab bleibt der neue Tab aktiv. Private und lokale Oberfläche sind getrennte Origins.
+- Pairing-Code bleibt im Sitzungsspeicher des Tabs für Neuladen verfügbar; manuelles Trennen entfernt ihn.
+- Freecam-TP gibt den von WizWalker angehaltenen Bewegungsupdate kurz frei, wartet auf die Spielerposition und stellt den Freecam-Patch auch nach Fehler/Abbruch wieder her. Die Kamera bleibt aktiv. Keine Erfolgsmeldung ohne Positionsprüfung.
+
 ## 0.1.1 Beta 7 · Diagnose und Kopplung
 
 - Behebt fehlende Script-Tags für Bot-Parser, Standardbibliothek und Botkatalog. Der Fehler konnte die App-Initialisierung vor der automatischen Kopplung abbrechen.

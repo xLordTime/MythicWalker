@@ -1,4 +1,10 @@
-# Mythic Walker · 0.1.1 Beta 7
+# Mythic Walker · 0.1.1 Beta 8
+
+## Dashboard und Freecam (Beta 8)
+
+**Rechtsklick auf Dashboard öffnen** kopiert den aktuellen Code zum manuellen Einfügen unter Bridge. Linksklick verwendet eine bestehende Kopplung. Bei neuen Kopplungen koordiniert die Webseite bestehende Tabs per BroadcastChannel: gleicher Browser, gleiches Profil, gleiche Origin. Der Übergabe-Tab schließt automatisch, soweit vom Browser erlaubt. Windows/Browser können den Fokuswechsel beschränken; in diesem Fall den vorhandenen Tab selbst auswählen. Ohne passenden Tab startet ein neues Dashboard. Ein bereits gekoppelter Tab hält seinen Code in sessionStorage bis zum Schließen/manuellen Trennen; Neuladen kann dadurch automatisch erneut koppeln. Bridge-Neustart erzeugt weiterhin einen neuen Code.
+
+Freecam-TP hebt die Bewegungs-Pause für den Teleport kurz auf und setzt sie anschließend wieder. Der Befehl prüft die erreichte Spielerposition (25 Einheiten Toleranz, 3 Sekunden), statt nur den Aufruf zu bestätigen. Der aktuelle DE-Livebetrieb benötigt zusätzlich einen Test im Spiel.
 
 ## Diagnose (Beta 7)
 
@@ -35,7 +41,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.7` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.8` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 
