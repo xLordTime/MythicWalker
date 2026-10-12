@@ -68,7 +68,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.12` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.13` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 
@@ -373,3 +373,11 @@ Die originale GUI wird durch den Web-Tab ersetzt; vorhandene Bridge-Hooks werden
 Die Bridge sichert Code-Originalbytes vor Schreibzugriffen, prüft Schreiben und Wiederherstellung und räumt vor dem Enthooken auf. Auch ein nur teilweise eingerichteter Speedhack bleibt für das Aufräumen registriert. Fehler beim Zurückschreiben behalten die Sicherung und verhindern das Schließen betroffener Hooks. Stoppen ist kooperativ; laufende Tasten- und Mausaktionen werden nicht abgebrochen.
 
 **Korbleerung:** Wie im Original kann der Bot dabei ausgewählte Fische löschen. Vor einem Zonenwechsel stoppen. Der reale Wizard101-DE-Spielablauf und der gemeldete Zonenabsturz konnten hier nicht getestet werden; automatisierte Tests führen den Originalkern gegen simulierte Spiel-APIs aus.
+
+### Raid-Tools und Accounts
+
+Im Tab **Raid** einen der fünf Raids wählen, seitlich den gewünschten Client auswählen und bei Bedarf **Hooken**. Die Suche filtert die Funktionen. Vor koordinatenbasierten Teleports die passende Raid-Teilzone betreten. **Aktion stoppen** beendet laufende Helfer; die Bridge entfernt dabei ihre Raid-Angelpatches. Touchstones setzen eine bereits aktive Freecam voraus. Raid-Angelpatches werden automatisch für den Fang aktiviert und danach entfernt.
+
+Angeln und Raid besitzen eine eigene Account-Auswahl, unabhängig von der globalen Auswahl unter Hooking. Beim Wechsel wird eine laufende Aktion zuerst vollständig gestoppt. Falls die Wiederherstellung fehlschlägt, bleibt der alte Account ausgewählt. Der nächste Lauf wird manuell gestartet.
+
+Original: [Lxghtend/raid-utility-tools](https://github.com/Lxghtend/raid-utility-tools), WorldsCollideTP von [CIick](https://github.com/CIick), GPL-3.0. Stand und Anpassungen: `bridge/vendor/raids/UPSTREAM.json`.

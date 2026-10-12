@@ -1,3 +1,14 @@
+## v0.1.1-beta.13 — Raid-Tools und Account-Auswahl
+
+- Neuer Raid-Tab mit Voracious Void, Crying Sky, Cabal’s Revenge, Ghastly Conspiracy und Blighted Veil.
+- 134 Aktionen aus Lxghtends Raid Utility Tools: Originalkoordinaten, Sammelobjekte, Trommeln, Katapulte, Raid-Angeln, Touchstones, Tokens, Wisps und Bindungsbuttons.
+- Seitliche, unabhängige Account-Auswahl für Angeln und Raid, direktes Hooken und Aktualisieren. Ein Wechsel stoppt zuerst den laufenden Bot; ein neuer Lauf wird ausdrücklich gestartet.
+- Aktionen bleiben an die gewählte PID gebunden. Stoppen, Enthooken und Verbindungstrennung räumen vor weiteren Spielzugriffen auf.
+- Raid-Angelpatches werden vor dem Schreiben gesichert und nach Abschluss, Fehler oder Stop geprüft wiederhergestellt. Keine parallelen Patchschreiber bei einem Fehler.
+- Credits: Lxghtend (Raid Utility Tools), CIick (WorldsCollideTP), GPL-3.0. Desktop-Updater, Telemetrie und zweite Hook-Verwaltung der Vorlage werden nicht gestartet.
+- Die Bridge enthält nun NumPy/Shapely für den originalen Kollisions-Teleport. Dadurch wächst die EXE.
+- Prüfung: automatisierte Bridge-/Webtests und Windows-Paketprüfung. Keine echte Raid-Instanz in dieser Entwicklungsumgebung verfügbar; Live-Funktion und aktuelle DE-Patterns müssen im Spiel bestätigt werden.
+
 ## v0.1.1-beta.12 — Vollständiger Original-FishBot
 
 - Ersetzt den reduzierten Beta-11-Ablauf durch den vollständigen FishBot-DE-Kern (c29dc5e18375).

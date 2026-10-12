@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-11",
+  "checked_at": "2026-10-12",
   "backend_commit": "13223e0911578e586975ace496d9f586ac4538da",
   "sources": [
     {
@@ -24,8 +24,8 @@
     },
     {
       "name": "Lxghtend/raid-utility-tools",
-      "url": "https://github.com/Lxghtend/raid-utility-tools",
-      "role": "Raid-Utilities · als Erweiterung untersucht"
+      "url": "https://github.com/Lxghtend/raid-utility-tools/tree/80d6a8d9f7b604460a1345e53e601a65dd760aaa",
+      "role": "Integriert · fünf Raids, 134 Aktionen · Lxghtend + CIick · GPL-3.0"
     },
     {
       "name": "StarrFox/wizdancer",

@@ -168,6 +168,7 @@ class Fishing:
         config=options(config)
         if self.bridge.demo:raise ValueError('Angeln benötigt die Live-Bridge und Wizard101 DE.')
         if self.running:raise ValueError('Der Fisch-Bot läuft bereits.')
+        if getattr(self.bridge,'raids',None) and self.bridge.raids.running:raise ValueError('Raid-Aktion zuerst stoppen.')
         if not isinstance(ids,list) or len(ids)!=1:raise ValueError('Genau einen Angel-Client auswählen.')
         if self.bridge.script_task and not self.bridge.script_task.done():raise ValueError('Skript zuerst stoppen.')
         if any(self.bridge.automations.state().values()):raise ValueError('Andere Automatiken zuerst stoppen.')

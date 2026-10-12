@@ -37,3 +37,12 @@ Der Kern enthält alle originalen Funktionen einschließlich Speedhack, 31 Angel
 ## memobj 0.17.0
 
 Unveränderte Python-Quelldateien aus dem offiziellen PyPI-Wheel von StarrFox/memobj 0.17.0, unter `bridge/memobj`. MIT-Lizenz: `bridge/memobj/LICENSE` (auch in der EXE enthalten). Die pauschalen neueren Paket-Mindestversionen kollidieren mit dem DE-WizWalker; die vom FishBot genutzten APIs werden mit den vorhandenen regex-/pefile-Versionen getestet, iced-x86 1.21.0 wird explizit installiert.
+
+## Raid Utility Tools / WorldsCollideTP
+
+Source: https://github.com/Lxghtend/raid-utility-tools
+Commit: 80d6a8d9f7b604460a1345e53e601a65dd760aaa
+Built and maintained by **Lxghtend**. WorldsCollideTP built by **CIick**.
+License: GPL-3.0; full license at `bridge/vendor/raids/LICENSE`.
+
+The five utility classes, raid coordinates, entity identifiers and collision teleport are adapted for MythicWalker's web UI and existing selected client. Exact adaptation notes are in `bridge/vendor/raids/UPSTREAM.json`. Upstream GUI, anonymous usage tracking, updater, foreground-client polling and duplicate hook ownership are omitted. NumPy (BSD-3-Clause) and Shapely (BSD-3-Clause; bundled GEOS under LGPL) are included by the Windows packager with their package licensing metadata.

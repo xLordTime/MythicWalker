@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/Lxghtend/raid-utility-tools",
+  "revision": "80d6a8d9f7b604460a1345e53e601a65dd760aaa",
+  "license": "GPL-3.0",
+  "authors": [
+    "Lxghtend",
+    "CIick (WorldsCollideTP)"
+  ],
+  "adaptations": [
+    "Headless raid utilities: UI, updater, tracking, foreground polling and duplicate hook management removed.",
+    "Action catalog extracted from original UI handlers; all coordinates/entity names retained.",
+    "Filtered target drum fix; fish patch setup sequential and journaled; catch polling yields to event loop.",
+    "Blighted Veil wisp list rebuilt in bridge to fix upstream trunc/list construction errors.",
+    "Fish patches automatically scoped to catch action and restored on stop/error; native input drained before cancellation.",
+    "WorldsCollideTP reads revision from the selected process ID, not the first process with a matching name."
+  ]
+}
