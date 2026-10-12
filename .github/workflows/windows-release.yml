@@ -30,8 +30,11 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw 'pip-Update fehlgeschlagen.' }
           python -m pip install --only-binary=regex -r bridge/requirements.txt pyinstaller==6.16.0
+          if ($LASTEXITCODE -ne 0) { throw 'Abhängigkeiten konnten nicht installiert werden.' }
           python -m pip check
+          if ($LASTEXITCODE -ne 0) { throw 'Abhängigkeiten sind inkompatibel.' }
       - name: Test bridge
         run: python -m unittest discover -s tests -q
       - uses: actions/setup-node@v4
@@ -52,7 +55,7 @@ jobs:
           Copy-Item dist/index.html,dist/fishing.js,dist/handoff.js,dist/script-functions.js,dist/script-studio.js,dist/diagnostics.js,dist/app.js,dist/settings.js,dist/tools.js,dist/style.css,dist/sources.json,dist/botlang.js,dist/bot-catalog.js,dist/default-library.js,dist/default-library.json,dist/upstream-bots.json,dist/BOTS_LICENSE.txt bridge/web -Force
           @{repository=$env:RELEASE_REPOSITORY} | ConvertTo-Json | Set-Content bridge/release_source.json -Encoding utf8NoBOM
           Set-Location bridge
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MythicWalker --icon assets/mythicwalker.ico --add-data 'assets;assets' --collect-submodules wizwalker --collect-submodules memobj --add-data 'web;web' --add-data 'release_source.json;.' --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6 --exclude-module matplotlib --exclude-module numpy desktop.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MythicWalker --icon assets/mythicwalker.ico --add-data 'assets;assets' --collect-submodules wizwalker --collect-submodules memobj --add-data 'memobj/LICENSE;memobj' --add-data 'web;web' --add-data 'release_source.json;.' --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6 --exclude-module matplotlib --exclude-module numpy desktop.py
           if ($LASTEXITCODE -ne 0) { throw 'Build fehlgeschlagen.' }
           python ../scripts/release_manifest.py dist/MythicWalker.exe
       - name: Smoke test packaged Windows widget

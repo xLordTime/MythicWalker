@@ -1,0 +1,7 @@
+{
+  "package": "memobj",
+  "version": "0.17.0",
+  "source": "https://pypi.org/project/memobj/0.17.0/",
+  "repository": "https://github.com/StarrFox/memobj",
+  "note": "Unmodified Python sources. The APIs used by FishBot are tested against the existing WizWalker regex/pefile pins; iced-x86 is installed explicitly."
+}

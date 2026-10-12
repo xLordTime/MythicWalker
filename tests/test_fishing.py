@@ -169,4 +169,4 @@ class FishingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(hashlib.sha256(source.encode()).hexdigest(),'9d374d1d548cd34e88f6bc07a6081ab47201ba6b2c1f4308e11ebf47d989d9f6')
     @unittest.skipUnless(sys.platform=='win32','Windows native dependencies')
     def test_real_windows_core_import(self):
-        subprocess.run([sys.executable,'-c','from vendor import fishbot_de; print(fishbot_de.Speedhack.__name__)'],cwd=ROOT/'bridge',check=True,capture_output=True,text=True)
+        subprocess.run([sys.executable,'-c','from vendor import fishbot_de; from memobj.process.windows.module import WindowsModule; import os; m=WindowsModule(name="kernel32.dll",base_address=0,executable_path=os.path.join(os.environ["WINDIR"],"System32","kernel32.dll"),size=0,process=None); assert m.get_symbol_with_name("GetTickCount")>0; print(fishbot_de.Speedhack.__name__)'],cwd=ROOT/'bridge',check=True,capture_output=True,text=True)
