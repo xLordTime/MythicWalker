@@ -1,3 +1,8 @@
+## 0.1.1 Beta 10 · Benannte Playstyle-Ziele
+
+- Benannte Kampfteilnehmer verwenden die tatsächliche get_members-API des gepinnten DE-WizWalker. Regressionstest für die Namensauswahl ergänzt.
+- Enthält den vollständigen Script-Studio-Ausbau aus Beta 9.
+
 ## 0.1.1 Beta 9 · Deimos Expertmode und Script Studio
 
 - Originaler Deimos-Tokenizer, Parser, Semantik und Compiler, GPL-3.0, fest auf Commit d7ef56eb51c5b5316cadba40ca554ec442a5dcee. DE-WizWalker und Hooks bleiben auf dem bisherigen Stand.

@@ -1,4 +1,4 @@
-# Mythic Walker · 0.1.1 Beta 9
+# Mythic Walker · 0.1.1 Beta 10
 
 ## Script Studio und Deimos Expertmode (Beta 9)
 
@@ -68,7 +68,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.9` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.10` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 

@@ -80,6 +80,12 @@ log $count
         self.assertIsNone(bridge.script_task);fake.adapter.execute.assert_awaited_once()
 
 class PlaystyleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_named_target_uses_pinned_get_members_api(self):
+        from playstyle import target_for
+        member=Obj(name=AsyncMock(return_value='Sister Sanderson'))
+        handler=Obj(get_members=AsyncMock(return_value=[member]))
+        self.assertIs(await target_for(handler,'"Sister Sanderson"'),member)
+        handler.get_members.assert_awaited_once()
     def test_priorities_enchants_rounds_targets_and_unavailable_verbs(self):
         rules=parse_style('###p1\n{1} any<blade>[sharp] @ ally(1) | pass\n?(self.health < 30%) any<heal> @ self | any<damage&aoe>[Epic] @ enemies')
         self.assertEqual(len(rules),4);self.assertEqual(rules[0]['round'],1);self.assertEqual(rules[0]['moves'][0]['enchants'][0]['name'],'sharpened')

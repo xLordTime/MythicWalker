@@ -126,7 +126,7 @@ async def target_for(handler,source):
             return None
         if family in {'enemies','allies'}:return members or None
         index=int(m[2] or 0);return members[index] if index<len(members) else None
-    members=await handler.get_all_members();name=source.strip('\"\'').casefold()
+    members=await handler.get_members();name=source.strip('\"\'').casefold()
     for member in members:
         if name in (await member.name()).casefold():return member
     return None
