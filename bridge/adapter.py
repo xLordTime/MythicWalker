@@ -24,6 +24,7 @@ class WizAdapter:
         self.discover_windows = wizard_windows
         self.scan_errors = []
         self.playstyles = {}
+        self.fishing_patches = {}
         event('adapter.init.ready')
 
     def clients(self):
@@ -107,9 +108,17 @@ class WizAdapter:
                 results.append({'pid': pid, 'ok': False, 'error': self.errors[pid]})
         return results
 
+    async def restore_fishing(self, client):
+        pid=str(client.process_id)
+        journal=getattr(self,'fishing_patches',{}).get(pid)
+        if journal:
+            await journal.restore()
+            self.fishing_patches.pop(pid,None)
+
     async def unhook(self, ids):
         event('unhook.begin', ids=ids)
         for c in self.selected(ids, hooked=False):
+            await self.restore_fishing(c)
             await self.restore_speed(c)
             if str(c.process_id) in self.freecam:
                 await c.camera_elastic()
@@ -472,7 +481,9 @@ class WizAdapter:
         errors = []
         for c in self.handler.clients:
             try:
-                if c.is_running(): await self.restore_speed(c)
+                if c.is_running():
+                    await self.restore_fishing(c)
+                    await self.restore_speed(c)
                 if c.is_running() and str(c.process_id) in self.freecam:
                     await c.camera_elastic()
                     self.freecam.discard(str(c.process_id))

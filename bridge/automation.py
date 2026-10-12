@@ -19,6 +19,7 @@ class Automations:
         if type(enabled) is not bool:raise ValueError('enabled muss boolesch sein.')
         await self.stop(mode)
         if enabled:
+            if self.bridge.fishing.running:raise ValueError('Fisch-Bot zuerst stoppen.')
             self.bridge.adapter.selected(ids)
             if self.bridge.script_task and not self.bridge.script_task.done() and not (from_script and mode=='combat'):raise ValueError('Skript zuerst stoppen.')
             if mode in {'questing','sigil'}:await self.stop('sigil' if mode=='questing' else 'questing')

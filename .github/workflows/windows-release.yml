@@ -49,7 +49,7 @@ jobs:
         env:
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
-          Copy-Item dist/index.html,dist/handoff.js,dist/script-functions.js,dist/script-studio.js,dist/diagnostics.js,dist/app.js,dist/settings.js,dist/tools.js,dist/style.css,dist/sources.json,dist/botlang.js,dist/bot-catalog.js,dist/default-library.js,dist/default-library.json,dist/upstream-bots.json,dist/BOTS_LICENSE.txt bridge/web -Force
+          Copy-Item dist/index.html,dist/fishing.js,dist/handoff.js,dist/script-functions.js,dist/script-studio.js,dist/diagnostics.js,dist/app.js,dist/settings.js,dist/tools.js,dist/style.css,dist/sources.json,dist/botlang.js,dist/bot-catalog.js,dist/default-library.js,dist/default-library.json,dist/upstream-bots.json,dist/BOTS_LICENSE.txt bridge/web -Force
           @{repository=$env:RELEASE_REPOSITORY} | ConvertTo-Json | Set-Content bridge/release_source.json -Encoding utf8NoBOM
           Set-Location bridge
           python -m PyInstaller --noconfirm --clean --onefile --windowed --name MythicWalker --icon assets/mythicwalker.ico --add-data 'assets;assets' --collect-submodules wizwalker --add-data 'web;web' --add-data 'release_source.json;.' --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6 --exclude-module matplotlib --exclude-module numpy desktop.py

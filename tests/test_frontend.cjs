@@ -49,3 +49,7 @@ const bots=JSON.parse(fs.readFileSync('dist/upstream-bots.json','utf8'));
 const supported=bots.filter(b=>{try{compileBot(b.source,library,parseFlat);return true;}catch{return false;}});
 assert.equal(supported.length,4);
 console.log('Default blocks, compact loops, recursion rejection and imported bot compatibility passed.');
+
+for(const match of fs.readFileSync('dist/fishing.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert(ids.includes(match[1]),'Missing Fishing DOM id '+match[1]);
+assert(html.includes('data-page="fishing"'));
+console.log('Fishing navigation and DOM contracts passed.');

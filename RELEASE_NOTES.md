@@ -1,3 +1,12 @@
+## v0.1.1-beta.11 — Angeln
+
+- Neuer Web-Tab Angeln mit FishBot-DE-Ablauf, Start/Stopp, Fangstatus und gespeicherten Filtern.
+- Verwendet vorhandene Bridge-Hooks; keine zweite ClientHandler-Instanz.
+- Normales Fangfenster, keine automatische Löschung, kein globaler DLL-Speedhack oder Animations-/Popup-Bypass.
+- Optionale sechs Angel-Entfernungs-/Winkelpatches: eindeutige Signaturen, Originalbytes vorab sichern, Schreibprüfung, Rückschreiben mit Prüfung vor Unhook. Fehlgeschlagene Wiederherstellung behält das Journal.
+- Stop/Unhook/Disconnect/Shutdown räumen auf; laufende Maus-/Tastenaktionen enden vor Abbruch. Zonenwechsel und Spielmeldungen stoppen den Bot.
+- Reales Wizard101-DE und der gemeldete Zonenabsturz konnten hier nicht getestet werden.
+
 ## 0.1.1 Beta 10 · Benannte Playstyle-Ziele
 
 - Benannte Kampfteilnehmer verwenden die tatsächliche get_members-API des gepinnten DE-WizWalker. Regressionstest für die Namensauswahl ergänzt.

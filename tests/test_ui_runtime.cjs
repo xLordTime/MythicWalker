@@ -47,7 +47,8 @@ function el(id){return elements.get(id);}
  el('block-source').value='call missing';await el('save-block').click();assert.match(el('toast').textContent,/Unbekannter Block/);assert.equal(JSON.parse(local.get('mythic-blocks-v1'))[0].source,'mass sendkey X, 0.1');
  await new Promise(r=>setTimeout(r,0));assert.match(el('bot-catalog-status').textContent,/12 Bots/);assert.match(el('bot-catalog-status').textContent,/12 aktiv/);
  await el('combat-read').click();assert.match(el('combat-cards').innerHTML,/LifeBlade/);
- for(const [page,label] of [['hooking','Hooking'],['combat','Combat'],['scripts','Skripte / Bot'],['tools','Tools']]){await nav.find(n=>n.dataset.page===page).click();assert.equal(el('breadcrumb').textContent,label);}
+ for(const [page,label] of [['hooking','Hooking'],['combat','Combat'],['scripts','Skripte / Bot'],['tools','Tools'],['fishing','Angeln']]){await nav.find(n=>n.dataset.page===page).click();assert.equal(el('breadcrumb').textContent,label);}
+ assert.equal(el('fish-start').disabled,true,'Fishing is live-only in demo');
  await shortcut('U');assert.equal(el('metric-hooks').textContent,0);
  // Persist the saved configuration after exercising shortcuts.
  await el('save-settings').click();

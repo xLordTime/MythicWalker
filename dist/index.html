@@ -10,11 +10,11 @@
 <link rel="icon" sizes="32x32" type="image/png" href="assets/mythicwalker-32.png">
 <link rel="apple-touch-icon" href="assets/mythicwalker-180.png">
 <link rel="stylesheet" href="style.css">
-<script defer src="diagnostics.js"></script><script defer src="settings.js"></script><script defer src="tools.js"></script><script defer src="default-library.js"></script><script defer src="botlang.js"></script><script defer src="bot-catalog.js"></script><script defer src="handoff.js"></script><script defer src="script-functions.js"></script><script defer src="script-studio.js"></script><script defer src="app.js"></script>
+<script defer src="diagnostics.js"></script><script defer src="settings.js"></script><script defer src="tools.js"></script><script defer src="default-library.js"></script><script defer src="botlang.js"></script><script defer src="bot-catalog.js"></script><script defer src="handoff.js"></script><script defer src="script-functions.js"></script><script defer src="script-studio.js"></script><script defer src="fishing.js"></script><script defer src="app.js"></script>
 </head>
 <body>
 <aside class="sidebar"><a class="brand" href="#overview"><span class="brand-icon"><img src="assets/mythicwalker.svg" alt="" width="44" height="44"></span><span>MYTHIC<span class="brand-sub">WALKER</span></span></a><div class="nav-label">CONTROL CENTER</div>
-<nav><button class="nav active" data-page="overview" data-icon="grid" title="Übersicht" aria-label="Übersicht">Übersicht</button><button class="nav " data-page="hooking" data-icon="link" title="Hooking" aria-label="Hooking">Hooking</button><button class="nav " data-page="tools" data-icon="navigation" title="Tools" aria-label="Tools">Tools</button><button class="nav " data-page="scripts" data-icon="code" title="Skripte / Bot" aria-label="Skripte / Bot">Skripte / Bot</button><button class="nav " data-page="combat" data-icon="combat" title="Combat" aria-label="Combat">Combat</button></nav><nav><button class="nav" data-page="settings" data-icon="settings" title="Einstellungen" aria-label="Einstellungen">Einstellungen</button></nav><div class="nav-label bottom-label">VERBINDUNG</div>
+<nav><button class="nav active" data-page="overview" data-icon="grid" title="Übersicht" aria-label="Übersicht">Übersicht</button><button class="nav " data-page="hooking" data-icon="link" title="Hooking" aria-label="Hooking">Hooking</button><button class="nav " data-page="tools" data-icon="navigation" title="Tools" aria-label="Tools">Tools</button><button class="nav " data-page="scripts" data-icon="code" title="Skripte / Bot" aria-label="Skripte / Bot">Skripte / Bot</button><button class="nav" data-page="fishing" data-icon="fish" title="Angeln" aria-label="Angeln">Angeln</button><button class="nav " data-page="combat" data-icon="combat" title="Combat" aria-label="Combat">Combat</button></nav><nav><button class="nav" data-page="settings" data-icon="settings" title="Einstellungen" aria-label="Einstellungen">Einstellungen</button></nav><div class="nav-label bottom-label">VERBINDUNG</div>
 <nav><button class="nav" data-page="setup" data-icon="link" title="Bridge einrichten" aria-label="Bridge einrichten">Bridge einrichten</button></nav><div class="sidebar-footer">
 <div class="bridge-led" id="side-state" hidden="">
 <span class="dot offline"></span>Bridge offline</div>
@@ -58,7 +58,7 @@
 <p>Teleport, Kamera und Inspector</p>
 <span class="route-arrow">↗</span></a><a class="workspace-card" href="#scripts"><span data-icon="code"></span><h2>Skripte / Bot</h2>
 <p>Abläufe und Automatik</p>
-<span class="route-arrow">↗</span></a><a class="workspace-card" href="#combat"><span data-icon="combat"></span><h2>Combat</h2>
+<span class="route-arrow">↗</span></a><a class="workspace-card" href="#fishing"><span data-icon="fish"></span><h2>Angeln</h2><p>FishBot und Fangfilter</p><span class="route-arrow">↗</span></a><a class="workspace-card" href="#combat"><span data-icon="combat"></span><h2>Combat</h2>
 <p>Karten und Kampfregeln</p>
 <span class="route-arrow">↗</span></a>
 </div>
@@ -140,7 +140,7 @@
 <span class="eyebrow">WINDOWS · BETA 0.1.1</span><h2>Mythic Walker Bridge</h2>
 <p>Mit App-Icon, automatischer Kopplung, Updates und minimierbarem Widget. Python ist nicht erforderlich.</p>
 <div class="actions">
-<a class="button primary" href="https://github.com/xLordTime/MythicWalker/releases/download/v0.1.1-beta.10/MythicWalker.exe" data-icon="download">Windows-EXE herunterladen</a><a class="button" href="https://github.com/xLordTime/MythicWalker" target="_blank" rel="noopener">GitHub ↗</a><a class="text-button" href="https://github.com/xLordTime/MythicWalker/releases" target="_blank" rel="noopener">Alle Releases ↗</a>
+<a class="button primary" href="https://github.com/xLordTime/MythicWalker/releases/download/v0.1.1-beta.11/MythicWalker.exe" data-icon="download">Windows-EXE herunterladen</a><a class="button" href="https://github.com/xLordTime/MythicWalker" target="_blank" rel="noopener">GitHub ↗</a><a class="text-button" href="https://github.com/xLordTime/MythicWalker/releases" target="_blank" rel="noopener">Alle Releases ↗</a>
 </div>
 </div></article><article class="panel bridge-commands"><h2>Alternative · Python-Starter</h2>
 <p>Für den Start aus dem Quellcode. Starter entpacken, dann diese Befehle im Projektordner ausführen.</p>
@@ -248,7 +248,17 @@ bridge\Start-Bridge.cmd</pre></article><div class="setup-grid">
 </div></div></article><div class="panel window-action">
 <label>UI-Fenstername<input id="window-name" placeholder="z. B. NPCRangeWin"></label><button class="button" id="click-window">Fenster klicken</button><p>Es muss genau ein sichtbares Fenster mit diesem Namen existieren.</p>
 </div></section>
-</section><section id="page-combat" class="page"><div class="title-row"><div>
+</section><section id="page-fishing" class="page"><div class="title-row"><div><h1>Angeln</h1><p class="subtitle">FishBot DE · Ein Client, ein Teich, deine Filter.</p></div><span class="badge" id="fishing-status">Bereit</span></div>
+<div class="fishing-layout"><article class="panel fishing-controls"><h2>Fisch-Bot</h2><p id="fishing-selection">Wähle genau einen Client unter Hooking aus.</p>
+<div class="fishing-options"><label>Fangart<select id="fish-chests"><option value="fish">Fische</option><option value="chests">Truhen</option></select></label>
+<label>Schule<select id="fish-school"><option value="Any">Alle Schulen</option><option>Fire</option><option>Ice</option><option>Storm</option><option>Myth</option><option>Life</option><option>Death</option><option>Balance</option><option>Sun</option><option>Moon</option><option>Star</option><option>Shadow</option><option>Astral</option></select></label>
+<label>Rang · 0 = alle<input id="fish-rank" type="number" min="0" max="20" step="1" value="0"></label><label>Fisch-ID · 0 = alle<input id="fish-id" type="number" min="0" max="2147483647" step="1" value="0"></label>
+<label>Minimalgröße<input id="fish-min" type="number" min="0" max="9999" value="0"></label><label>Maximalgröße<input id="fish-max" type="number" min="0" max="9999" value="9999"></label>
+<label>Fanglimit · 0 = kein Limit<input id="fish-limit" type="number" min="0" max="10000" step="1" value="0"></label><label>Maximale Minuten<input id="fish-minutes" type="number" min="1" max="60" step="1" value="30"></label></div>
+<label class="fishing-check"><input id="fish-distance" type="checkbox">Entfernung und Winkel erweitern · experimentell</label><p class="muted">Originalbytes werden vor Änderungen gesichert und beim Stoppen geprüft zurückgeschrieben.</p>
+<div class="actions"><button id="fish-start" class="button primary" data-icon="play">Angeln starten</button><button id="fish-stop" class="button danger" data-icon="stop" disabled>Stoppen</button></div></article>
+<article class="panel fishing-progress"><h2>Aktueller Lauf</h2><div class="fishing-counter" id="fish-count">0</div><p>Bestätigte Fänge</p><p id="fish-phase" role="status" aria-live="polite">Bereit zum Angeln</p><p id="fish-restore">Keine Angel-Patches aktiv</p><p id="fish-error" class="client-error" hidden></p><hr><h3>Vor dem Start</h3><p>Am Teich stehen, passende Angelzauber ausrüsten und genau einen gehookten Client auswählen. Filter werden beim Start übernommen.</p><p>Fangfenster werden regulär bestätigt. Bei vollem Korb oder einer Spielmeldung stoppt der Bot; er löscht keine Fische. Vor einem Zonenwechsel stoppen.</p><a href="https://github.com/xLordTime/Fisch-Bot-DE" target="_blank" rel="noopener" class="text-button">FishBot DE · Originalquelle ↗</a></article></div></section>
+<section id="page-combat" class="page"><div class="title-row"><div>
 <h1>Combat</h1>
 <p class="subtitle">Kampfautomatik und Karten des ausgewählten Clients.</p>
 </div></div>

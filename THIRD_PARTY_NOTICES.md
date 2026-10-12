@@ -27,3 +27,7 @@ The read-only hostile NPCBehavior flag used by `closest_mob` follows `src/sprint
 ## Deimos Expertmode compiler
 
 `bridge/deimoslang/{tokenizer,types,parser,sem,ir}.py` are copied from Deimos-Wizard101/Deimos-Wizard101 at `d7ef56eb51c5b5316cadba40ca554ec442a5dcee` (GPL-3.0). `expression_vm.py` adapts its expression evaluator; `expert.py` supplies MythicWalker game adapters and a bounded instruction VM. The original desktop UI, account launcher, Python execution and external game extension suite are not bundled. Project license is included as LICENSE. Wiki source was inspected at wiki commit `a165c81b7d2177c4b5cef474f5b557280d2fbf1f`.
+
+## FishBot DE
+
+Angelablauf und sechs Signaturen adaptiert aus https://github.com/xLordTime/Fisch-Bot-DE/blob/c29dc5e183756b5409bd97ad5d776e9c01b73b15/FishBot_Updated_2026.py (Repository des Projektbesitzers). Eigenständige Integration in die Bridge, ohne GUI, Speedhack, globalen Animations- oder Popup-Bypass.

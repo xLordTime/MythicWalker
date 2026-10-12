@@ -26,6 +26,7 @@ from playstyle import parse_style
 from settings import Settings, ACTIONS
 from hotkeys import Hotkeys
 from automation import Automations
+from fishing import Fishing
 
 from version import VERSION, RELEASE_TAG
 SITE_ORIGIN = 'https://mythic-walker.lord-time.chatgpt.site'
@@ -94,6 +95,7 @@ class Bridge:
         self.session_generation = 0
         self.observer = observer or (lambda title,detail='': None)
         self.automations = Automations(self)
+        self.fishing = Fishing(self)
 
     async def set_script_playstyle(self,source,ids):
         rows=parse_style(source)
@@ -140,7 +142,7 @@ class Bridge:
         running=bool(self.script_task and not self.script_task.done())
         modes=self.automations.state()
         dialogue=modes['dialogue']
-        await self.send({'type':'state','demo':self.demo,'version':VERSION,'clients':clients,'running':running,'dialogue':dialogue,'automations':modes})
+        await self.send({'type':'state','demo':self.demo,'version':VERSION,'clients':clients,'running':running,'dialogue':dialogue,'automations':modes,'fishing':dict(self.fishing.data)})
         self.observer('Dashboard verbunden',f"{len(clients)} Clients · {sum(c['hooked'] for c in clients)} Hooks · {'Skript läuft' if running else 'Dialog-Automatik' if dialogue else 'Bereit'}")
 
     @property
@@ -149,6 +151,7 @@ class Bridge:
     async def stop_dialogue(self):await self.automations.stop('dialogue')
 
     async def stop(self):
+        await self.fishing.stop()
         task = self.script_task
         if task and not task.done():
             task.cancel()
@@ -311,6 +314,10 @@ class Bridge:
             return {'loaded':True}
         if self.cleanup_error:
             raise ValueError('Bridge nach Unhook-Fehler neu starten: ' + self.cleanup_error)
+        if op=='fishing_start':return await self.fishing.start(args.get('ids'),args.get('settings',{}))
+        if op=='fishing_stop':return await self.fishing.stop()
+        if self.fishing.running and op not in {'stop','unhook','scan','snapshot','get_settings','pause_hotkeys','shortcut_context','widget'}:
+            raise ValueError('Fisch-Bot zuerst stoppen.')
         if op=='movement':return await self.movement(args.get('action'),args)
         if op=='automation':return await self.automations.toggle(args.get('mode'),args.get('ids'),args.get('enabled'))
         if op == 'widget':
@@ -395,7 +402,9 @@ class Bridge:
             return {'started':True, 'steps':steps['instructions']}
         if self.script_task and not self.script_task.done() and op not in {'snapshot','entities','ui_tree','cards','stats','quest_position'}:
             raise ValueError('Skript zuerst stoppen.')
-        if op=='unhook':await self.automations.stop()
+        if op=='unhook':
+            await self.fishing.stop()
+            await self.automations.stop()
         async with self.lock:
             async with asyncio.timeout(45):
                 if op == 'scan': return await self.adapter.scan()
@@ -494,7 +503,8 @@ class Bridge:
                     await asyncio.to_thread(self.hotkeys.stop)
                     self.shortcut_context = {'ids':[], 'source':''}
                     await self.automations.stop()
-                    await self.stop()
+                    try:await self.stop()
+                    except Exception as exc:self.cleanup_error=str(exc)
                     async with self.lock:
                         try: await self.adapter.close()
                         except Exception as exc:
@@ -511,7 +521,8 @@ class Bridge:
         self.session_generation += 1
         await asyncio.to_thread(self.hotkeys.stop)
         await self.automations.stop()
-        await self.stop()
+        try:await self.stop()
+        except Exception as exc:self.cleanup_error=str(exc)
         if self.ws: await self.ws.close(code=1001,message=b'Bridge shutdown')
         async with self.lock: await self.adapter.close()
 
@@ -542,7 +553,7 @@ def create_app(bridge, web_dir):
     app.router.add_get('/health',health)
     app.router.add_get('/',index)
     # Serve only the explicit frontend assets, never bridge source/certificates.
-    for filename in ['app.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
+    for filename in ['app.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
     # Only public, packaged icon assets; never expose other bridge directories.

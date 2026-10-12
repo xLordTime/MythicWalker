@@ -68,7 +68,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.10` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.11` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 
@@ -363,3 +363,11 @@ mass restorespeed
 ```
 
 Die bisherige feste Begrenzung auf 200 Schritte/15 Minuten und der Stop-Mechanismus bleiben.
+
+### Angeln
+
+Der Tab **Angeln** verwendet einen bereits gehookten Client. Fisch/Truhen, Schule, exakter Rang, ID, Größe, Fanglimit und Laufzeit sind einstellbar. Das normale Fangfenster bleibt aktiv. Keine automatische Korbleerung.
+
+Entfernungs-/Winkelpatches sind optional und standardmäßig aus. Alle sechs Patterns müssen eindeutig passen. Originalbytes werden vor dem ersten Schreiben gelesen, jede Änderung und Wiederherstellung geprüft; beim Stoppen, Disconnect, Shutdown und vor dem Unhooken wird aufgeräumt. Ein Wiederherstellungsfehler behält das Journal und verhindert das Schließen der betroffenen Hooks. DLL-Speedhack und globale Animations-/Popup-Patches des Originalbots werden nicht verwendet.
+
+Vor dem Zonenwechsel den Bot stoppen. Der konkrete Internal-Error-Absturz kann nur im laufenden Wizard101-DE-Spiel überprüft werden; automatisierte Tests prüfen den Fangablauf und das Aufräumen mit simuliertem Speicher.
