@@ -68,7 +68,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.11` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.12` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 
@@ -366,8 +366,10 @@ Die bisherige feste Begrenzung auf 200 Schritte/15 Minuten und der Stop-Mechanis
 
 ### Angeln
 
-Der Tab **Angeln** verwendet einen bereits gehookten Client. Fisch/Truhen, Schule, exakter Rang, ID, Größe, Fanglimit und Laufzeit sind einstellbar. Das normale Fangfenster bleibt aktiv. Keine automatische Korbleerung.
+Der Tab **Angeln** führt den vollständigen Originalkern aus `xLordTime/Fisch-Bot-DE` (Commit `c29dc5e183756b5409bd97ad5d776e9c01b73b15`) aus. Enthalten sind alle 31 Patches, Teicherneuerung, Filter, Fang-Popup-Bypass, automatische Korbleerung bei voller Tasche und nach 100 Fischen, optionaler Speedhack und sämtliche Timing-Einstellungen. Die Standardwerte entsprechen dem Original: Rang 2, Maximalgröße 999, Popup überspringen an, Speedhack aus, alle Patterns erforderlich. Web-Limits sind standardmäßig unbegrenzt (0).
 
-Entfernungs-/Winkelpatches sind optional und standardmäßig aus. Alle sechs Patterns müssen eindeutig passen. Originalbytes werden vor dem ersten Schreiben gelesen, jede Änderung und Wiederherstellung geprüft; beim Stoppen, Disconnect, Shutdown und vor dem Unhooken wird aufgeräumt. Ein Wiederherstellungsfehler behält das Journal und verhindert das Schließen der betroffenen Hooks. DLL-Speedhack und globale Animations-/Popup-Patches des Originalbots werden nicht verwendet.
+Die originale GUI wird durch den Web-Tab ersetzt; vorhandene Bridge-Hooks werden wiederverwendet. Der Angelablauf bleibt im vendorten Originalcode. Ein gezielter Fehler im Original wird korrigiert: Bei ausgeschaltetem Popup-Bypass wird dessen Patch nicht gesetzt, damit das normale Fangfenster erscheinen kann.
 
-Vor dem Zonenwechsel den Bot stoppen. Der konkrete Internal-Error-Absturz kann nur im laufenden Wizard101-DE-Spiel überprüft werden; automatisierte Tests prüfen den Fangablauf und das Aufräumen mit simuliertem Speicher.
+Die Bridge sichert Code-Originalbytes vor Schreibzugriffen, prüft Schreiben und Wiederherstellung und räumt vor dem Enthooken auf. Auch ein nur teilweise eingerichteter Speedhack bleibt für das Aufräumen registriert. Fehler beim Zurückschreiben behalten die Sicherung und verhindern das Schließen betroffener Hooks. Stoppen ist kooperativ; laufende Tasten- und Mausaktionen werden nicht abgebrochen.
+
+**Korbleerung:** Wie im Original kann der Bot dabei ausgewählte Fische löschen. Vor einem Zonenwechsel stoppen. Der reale Wizard101-DE-Spielablauf und der gemeldete Zonenabsturz konnten hier nicht getestet werden; automatisierte Tests führen den Originalkern gegen simulierte Spiel-APIs aus.

@@ -1,3 +1,13 @@
+## v0.1.1-beta.12 — Vollständiger Original-FishBot
+
+- Ersetzt den reduzierten Beta-11-Ablauf durch den vollständigen FishBot-DE-Kern (c29dc5e18375).
+- Alle 31 Patches, Teicherneuerung, originale Filter, Popup-Bypass, Korbleerung, optionaler Speedhack und fünf Timing-Einstellungen im Web.
+- Original-Standardwerte und Schaltfläche zum Wiederherstellen der Einstellungen; Web-Limits standardmäßig unbegrenzt.
+- Kleine Korrektur am Original: deaktivierter Popup-Bypass lässt das Fangfenster erscheinen.
+- Verifizierte Sicherung/Wiederherstellung auch bei Teilfehlern; kooperatives Stoppen und Wiederverwendung bestehender Bridge-Hooks.
+- Tests prüfen den vollständigen Originalkern, Popup an/aus, 100-Fische-Korbleerung, Neustart, Schreibfehler, Speedhack-Teilfehler und Stop/Unhook. Windows-Build prüft auch den Import des FishBot-Kerns aus der EXE.
+- Live-Spiel und Zonenabsturz bleiben vor Ort zu prüfen.
+
 ## v0.1.1-beta.11 — Angeln
 
 - Neuer Web-Tab Angeln mit FishBot-DE-Ablauf, Start/Stopp, Fangstatus und gespeicherten Filtern.

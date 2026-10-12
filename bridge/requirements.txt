@@ -1,3 +1,5 @@
 aiohttp>=3.11,<4
 cryptography>=43,<47
 wizwalker @ https://github.com/Vindaloniak/wizwalker/archive/13223e0911578e586975ace496d9f586ac4538da.zip ; sys_platform == 'win32'
+loguru>=0.7,<1
+memobj==0.17.0 ; sys_platform == 'win32'

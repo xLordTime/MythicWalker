@@ -40,6 +40,8 @@ def trust_certificate(cert):
 def main():
     if sys.platform!='win32':raise RuntimeError('Desktop-App benötigt Windows.')
     if '--smoke-test' in sys.argv:
+        from vendor import fishbot_de
+        if not callable(fishbot_de.main):raise RuntimeError('FishBot fehlt im EXE-Paket.')
         widget=StatusWidget(VERSION+' Beta');widget.report('Native UI Smoke Test','Fenster, Zeichnen und Schließen prüfen.')
         widget.copy_pairing=lambda:setattr(widget,'smoke_pairing',widget.smoke_pairing+1)
         threading.Timer(.3,lambda:widget.visibility('hide')).start()

@@ -30,4 +30,6 @@ The read-only hostile NPCBehavior flag used by `closest_mob` follows `src/sprint
 
 ## FishBot DE
 
-Angelablauf und sechs Signaturen adaptiert aus https://github.com/xLordTime/Fisch-Bot-DE/blob/c29dc5e183756b5409bd97ad5d776e9c01b73b15/FishBot_Updated_2026.py (Repository des Projektbesitzers). Eigenständige Integration in die Bridge, ohne GUI, Speedhack, globalen Animations- oder Popup-Bypass.
+Vollständiger Originalkern aus https://github.com/xLordTime/Fisch-Bot-DE/blob/c29dc5e183756b5409bd97ad5d776e9c01b73b15/FishBot_Updated_2026.py (Repository des Projektbesitzers), unter `bridge/vendor/fishbot_de.py`.
+
+Der Kern enthält alle originalen Funktionen einschließlich Speedhack, 31 Angel-Patches und Korbleerung. Einzige Änderung in dieser Datei: Bei deaktiviertem SKIP_CAUGHT_FISH_POPUP wird dessen Patch ausgelassen. Web-Konfiguration, Bridge-Anbindung und verifizierte Wiederherstellung liegen separat in `bridge/fishing.py`.
