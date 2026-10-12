@@ -13,14 +13,14 @@ class Automations:
                 try:await task
                 except asyncio.CancelledError:pass
             self.targets.pop(name,None)
-    async def toggle(self,mode,ids,enabled=None):
+    async def toggle(self,mode,ids,enabled=None,from_script=False):
         if mode not in MODES:raise ValueError('Unbekannte Automatik.')
         if enabled is None:enabled=not self.state()[mode]
         if type(enabled) is not bool:raise ValueError('enabled muss boolesch sein.')
         await self.stop(mode)
         if enabled:
             self.bridge.adapter.selected(ids)
-            if self.bridge.script_task and not self.bridge.script_task.done():raise ValueError('Skript zuerst stoppen.')
+            if self.bridge.script_task and not self.bridge.script_task.done() and not (from_script and mode=='combat'):raise ValueError('Skript zuerst stoppen.')
             if mode in {'questing','sigil'}:await self.stop('sigil' if mode=='questing' else 'questing')
             async with self.bridge.lock:await self.bridge.adapter.prepare_automation(mode,list(ids))
             self.targets[mode]=list(ids)

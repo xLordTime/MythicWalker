@@ -45,7 +45,7 @@ function el(id){return elements.get(id);}
  el('block-name').value='mine';el('block-description').value='Mein Block';el('block-source').value='mass sendkey X, 0.1';await el('save-block').click();assert.equal(JSON.parse(local.get('mythic-blocks-v1'))[0].name,'mine');
  el('script-editor').value='times 999999 {\ncall mine\ncall safe_mob_pull\n}';await el('validate-script').click();assert.match(el('script-validation').textContent,/Syntax gültig/);
  el('block-source').value='call missing';await el('save-block').click();assert.match(el('toast').textContent,/Unbekannter Block/);assert.equal(JSON.parse(local.get('mythic-blocks-v1'))[0].source,'mass sendkey X, 0.1');
- await new Promise(r=>setTimeout(r,0));assert.match(el('bot-catalog-status').textContent,/12 Bots/);assert.match(el('bot-catalog-status').textContent,/4 aktiv/);
+ await new Promise(r=>setTimeout(r,0));assert.match(el('bot-catalog-status').textContent,/12 Bots/);assert.match(el('bot-catalog-status').textContent,/12 aktiv/);
  await el('combat-read').click();assert.match(el('combat-cards').innerHTML,/LifeBlade/);
  for(const [page,label] of [['hooking','Hooking'],['combat','Combat'],['scripts','Skripte / Bot'],['tools','Tools']]){await nav.find(n=>n.dataset.page===page).click();assert.equal(el('breadcrumb').textContent,label);}
  await shortcut('U');assert.equal(el('metric-hooks').textContent,0);

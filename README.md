@@ -1,4 +1,31 @@
-# Mythic Walker · 0.1.1 Beta 8
+# Mythic Walker · 0.1.1 Beta 9
+
+## Script Studio und Deimos Expertmode (Beta 9)
+
+Der Skriptbereich besitzt jetzt zwei Laufzeiten. **Deimos Expertmode** verwendet den originalen Deimos-Sprachkern (Tokenizer, Parser, Semantik und Compiler); eine eigene begrenzte Bridge-VM führt die Aktionen mit dem unveränderten DE-WizWalker aus. **Basis / Demo** bleibt für vorhandene einfache Skripte verfügbar. Automatisch wählt Expertmode für `##deimos_expertmode` oder typische Expertmode-Deklarationen. Live-Syntaxprüfung benötigt Beta 9.
+
+Alle zwölf mitgelieferten Katalogdateien lassen sich übersetzen; die Bridge prüft vor dem Start erneut. Das bestätigt Sprache und verfügbare Adapter, nicht den vollständigen Live-Ablauf jedes Community-Bots. Original-Kommentare, Startzone, Clientzahl, Decks und nötige Vorbereitungen beachten.
+
+```text
+##deimos_expertmode
+con count = 0
+settimer farming
+times 10 {
+    call safe_mob_pull
+    call after_combat
+    addone count
+}
+log $count
+endtimer farming
+```
+
+Unterstützt werden Blockaufrufe mit transitiver Standardbibliothek, return/break, if/elif/else, logische Operatoren, Zahlen/Prozentvergleiche, Variablen/Zähler, Timer, Bereiche (`p1:p3`), `except`, `any`/`sameany`, `&&`, Bedingungen für Stats, Fenster, Kampf, Zone, Quests und Positionen. Wiki-Varianten wie `loop 5 times`, Timer und `setyaw` werden an den Sprachkern angepasst. Maximal 64 KB, 10.000 IR-Anweisungen und 128 Stackeinträge; das Expertmode-Zeitlimit folgt dem Automatik-Zeitlimit in Settings.
+
+Neue Live-Aktionen umfassen relative/clientbasierte Teleports, Navmap-Koordinaten, Laufen mit freigegebenen Tastendrücken, UI-Klicks über vollständige Pfade, virtuellen Cursor, Warten auf Kampf/Dialog/Frei/Zone/Fenster, Tränke, Freundeslisten und Relog. `buypotions` unterstützt aktuell Hilda im Commons; die automatische Weltreise ist noch nicht vorhanden.
+
+Der Playstyle-Editor prüft Regeln und lädt sie für ausgewählte Clients. Im Bot funktioniert ein mehrzeiliges `loadplaystyle` gefolgt von `togglecombat on`; alternativ Auto-Combat beim Start auswählen. Prioritäten `|`, Rundenvorgaben `{1}`, Enchants `[Epic]`, Typfilter, Ziele self/enemy/boss/ally/Mehrfachziele und Bedingungen wie `?(self.health < 30%)` sind umgesetzt. Inline-Playstyles werden nach dem Bot wieder durch den vorherigen Stand ersetzt. Enchants sind optional, sofern keine passende Karte vorhanden ist.
+
+**Noch offen:** Pet-Tanz, Deck-Presets, weltübergreifendes `tozone`, Drop-Tracking und moderne gambit/clear/echo/swap/req_met-Filter. Nicht verfügbare Befehle werden klar abgelehnt; UI- und Questpfade benötigen zusätzlich Prüfung im aktuellen DE-Spiel. Quellen: https://github.com/Deimos-Wizard101/Deimos-Wizard101/wiki, Upstream d7ef56eb51c5b5316cadba40ca554ec442a5dcee.
 
 ## Dashboard und Freecam (Beta 8)
 
@@ -41,7 +68,7 @@ Die Editor-Option **Auto-Combat während dieses Bots** nutzt die Regeln aus Comb
 ## Aktuelle GitHub-Beta
 
 Repository: https://github.com/xLordTime/MythicWalker
-Release: `v0.1.1-beta.8` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
+Release: `v0.1.1-beta.9` (Prerelease), App-Version `0.1.1`, Kanal `beta`.
 Die älteren Abschnitte unten dokumentieren die bisherigen Entwicklungsstände;
 für die aktuelle EXE und Belegung gilt dieser Abschnitt.
 

@@ -23,6 +23,7 @@ class WizAdapter:
         from windows_clients import wizard_windows
         self.discover_windows = wizard_windows
         self.scan_errors = []
+        self.playstyles = {}
         event('adapter.init.ready')
 
     def clients(self):
@@ -159,12 +160,12 @@ class WizAdapter:
             return current if await current.is_visible() else None
         except ValueError:return None
 
-    async def mouse_action(self,c,action,*args):
+    async def mouse_action(self,c,action,*args,**kwargs):
         # WizWalker owns the temporary cursor hook through its context manager.
         # Release it on return, exceptions and cancellation so physical mouse
         # movement (including camera drag) works between automated clicks.
         async with c.mouse_handler:
-            return await action(*args)
+            return await action(*args,**kwargs)
 
     async def dialogue_step(self,c,accept=False):
         if not await c.is_in_dialog():return False
@@ -184,6 +185,12 @@ class WizAdapter:
         marker=(await c.duel.duel_id_full(),await c.duel.round_num())
         if self.combat_rounds.get(pid)==marker:return
         handler=self.CombatHandler(c)
+        if getattr(self,'playstyles',{}).get(pid):
+            from playstyle import play_round
+            self.combat_rounds[pid]=marker
+            if await play_round(self,c,self.playstyles[pid],marker[1]):return
+            if config['combat_pass']:await self.mouse_action(c,handler.pass_button)
+            return
         for rule in combat_rules(config['combat_rules']):
             if rule['name']=='pass':
                 self.combat_rounds[pid]=marker;await self.mouse_action(c,handler.pass_button);return
@@ -254,6 +261,9 @@ class WizAdapter:
     async def execute(self, op, args):
         clients = self.selected(args.get('ids'))
         result = []
+        if op=='navmap_to':
+            point=self.XYZ(*xyz(args.get('position')))
+            return [await self.navmap_teleport(c,point,20) for c in clients]
         if op=='navmap_tp':
             source=self.selected([args['source']])[0] if args.get('source') else None
             target=await source.quest_position.position() if source else None

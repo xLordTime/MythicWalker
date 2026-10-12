@@ -21,6 +21,8 @@ from adapter import WizAdapter, DemoAdapter
 from protocol import parse_script
 from botlang import compile_bot, walk_nodes, interpret
 from block_library import BlockLibrary
+from expert import compile_expert, ExpertVM
+from playstyle import parse_style
 from settings import Settings, ACTIONS
 from hotkeys import Hotkeys
 from automation import Automations
@@ -28,6 +30,13 @@ from automation import Automations
 from version import VERSION, RELEASE_TAG
 SITE_ORIGIN = 'https://mythic-walker.lord-time.chatgpt.site'
 ROOT = Path(__file__).resolve().parent
+
+def uses_expert(args):
+    mode=args.get('engine','auto')
+    if mode not in {'auto','basic','deimos'}:raise ValueError('Ausführung: auto, basic oder deimos.')
+    source=str(args.get('source',''))
+    import re
+    return mode=='deimos' or mode=='auto' and bool(re.search(r'(?m)^#{2,}\s*deimos_expertmode|^(?:con|setvar|addone|minusone|settimer|endtimer|loadplaystyle|togglecombat|except)\s',source))
 
 
 def bridge_event_loop(platform=None):
@@ -85,6 +94,26 @@ class Bridge:
         self.session_generation = 0
         self.observer = observer or (lambda title,detail='': None)
         self.automations = Automations(self)
+
+    async def set_script_playstyle(self,source,ids):
+        rows=parse_style(source)
+        if not hasattr(self.adapter,'playstyles'):raise ValueError('Playstyles benötigen eine Live-Bridge.')
+        for index,pid in enumerate(ids,1):
+            self.adapter.playstyles[pid]=[row for row in rows if row['client'] in {'mass','p'+str(index)}]
+        await self.log('Playstyle für '+str(len(ids))+' Clients übernommen.')
+
+    async def run_expert(self,compiled,ids):
+        previous_styles=dict(getattr(self.adapter,'playstyles',{}))
+        try:
+            await ExpertVM(self,compiled,ids,self.settings.data['automation']['max_minutes']).run()
+            await self.log('Deimos-Bot abgeschlossen.')
+        except asyncio.CancelledError:await self.log('Deimos-Bot gestoppt.','warning')
+        except Exception as exc:
+            logger.exception('expert.failed');await self.log('Deimos-Bot: '+str(exc),'error')
+        finally:
+            await self.automations.stop('combat')
+            if hasattr(self.adapter,'playstyles'):self.adapter.playstyles=previous_styles
+            await self.send({'type':'script_done'})
 
     async def send(self, data):
         ws = self.ws
@@ -269,6 +298,17 @@ class Bridge:
 
     async def dispatch(self, op, args):
         if op == 'get_diagnostics': return bundle()
+        if op == 'script_capabilities':
+            from expert import SUPPORTED_COMMANDS, UNSUPPORTED
+            return {'engine':'deimos','release':RELEASE_TAG,'commands':sorted(SUPPORTED_COMMANDS),'unsupported':UNSUPPORTED}
+        if op == 'validate_playstyle':return {'rules':len(parse_style(args.get('source')))}
+        if op == 'validate_block_library':
+            self.block_library.validate(args.get('blocks'))
+            return {'valid':True}
+        if op == 'set_playstyle':
+            self.adapter.selected(args.get('ids'))
+            await self.set_script_playstyle(args.get('source'),args['ids'])
+            return {'loaded':True}
         if self.cleanup_error:
             raise ValueError('Bridge nach Unhook-Fehler neu starten: ' + self.cleanup_error)
         if op=='movement':return await self.movement(args.get('action'),args)
@@ -307,12 +347,38 @@ class Bridge:
         if op == 'get_block_library':return {'blocks':self.block_library.custom}
         if op == 'set_block_library':return {'blocks':self.block_library.update(args.get('blocks'))}
         if op == 'validate_script':
+            if uses_expert(args):
+                result=compile_expert(args.get('source'),self.block_library.merged())
+                return {'steps':result['instructions'],'engine':'deimos','commands':result['commands']}
             steps=compile_bot(args.get('source'),self.block_library.merged())
             return {'steps':steps['instructions'], 'parsed':steps}
 
         if op == 'run_script':
             if self.script_task and not self.script_task.done():
                 raise ValueError('Es läuft bereits ein Skript.')
+            if uses_expert(args):
+                if self.demo:raise ValueError('Deimos-Expertmode benötigt die Live-Bridge; Demo nur für den Basis-Runner.')
+                compiled=compile_expert(args.get('source'),self.block_library.merged())
+                ids=args.get('ids');self.adapter.selected(ids)
+                auto_combat=args.get('auto_combat',False)
+                if type(auto_combat) is not bool:raise ValueError('Auto-Combat muss boolesch sein.')
+                vm=ExpertVM(self,compiled,ids,self.settings.data['automation']['max_minutes'])
+                # Validate explicit selectors before the first game action.
+                def selectors(value):
+                    from deimoslang.types import PlayerSelector, Expression, Command
+                    if isinstance(value,PlayerSelector):vm._select_players(value)
+                    elif isinstance(value,(list,tuple)):
+                        for item in value:selectors(item)
+                    elif isinstance(value,dict):
+                        for item in value.values():selectors(item)
+                    elif isinstance(value,(Expression,Command)):
+                        for item in vars(value).values():selectors(item)
+                for instruction in compiled['program']:selectors(instruction.data)
+                for node in compiled['extensions'].values():selectors(node)
+                await self.automations.stop()
+                if auto_combat:await self.automations.toggle('combat',ids,True)
+                self.script_task=asyncio.create_task(self.run_expert(compiled,list(ids)))
+                return {'started':True,'steps':compiled['instructions'],'engine':'deimos'}
             steps = compile_bot(args.get('source'),self.block_library.merged())
             ids = args.get('ids')
             self.adapter.selected(ids)
@@ -406,7 +472,7 @@ class Bridge:
                                 await self.log(error, 'error')
                         if data.get('op') in {'hook','unhook','scan'}:await self.configure_hotkeys()
                         await self.send({'type':'result','id':data['id'],'ok':True,'data':result})
-                        if data.get('op') not in {'get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics'}:
+                        if data.get('op') not in {'get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics','validate_script','validate_playstyle','script_capabilities','validate_block_library'}:
                             async with self.lock: await self.state()
                     except Exception as exc:
                         logger.exception('command.failed op=%s', data.get('op') if isinstance(data,dict) else 'invalid')
@@ -476,7 +542,7 @@ def create_app(bridge, web_dir):
     app.router.add_get('/health',health)
     app.router.add_get('/',index)
     # Serve only the explicit frontend assets, never bridge source/certificates.
-    for filename in ['app.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
+    for filename in ['app.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
     # Only public, packaged icon assets; never expose other bridge directories.

@@ -23,3 +23,7 @@ WizWalker adapter, bound operations, and limit the final walk distance.
 `dist/upstream-bots.json` and its EXE copy bundle unchanged scripts from Deimos-Wizard101/bots, commit `dc5198b1a8570fa169c45fdd2c01768b5da757e0`, licensed GPL-3.0. Fork: https://github.com/xLordTime/bots. Original author metadata and source paths are preserved. Full upstream license text: `dist/BOTS_LICENSE.txt`. The MythicWalker example and default blocks are additional GPL-3.0 project content.
 
 The read-only hostile NPCBehavior flag used by `closest_mob` follows `src/sprinty_client.py` in Deimos-Wizard101/Deimos-Wizard101 (GPL-3.0; SprintyClient credits Sirolaf). No full Deimos VM or Playstyle parser is bundled.
+
+## Deimos Expertmode compiler
+
+`bridge/deimoslang/{tokenizer,types,parser,sem,ir}.py` are copied from Deimos-Wizard101/Deimos-Wizard101 at `d7ef56eb51c5b5316cadba40ca554ec442a5dcee` (GPL-3.0). `expression_vm.py` adapts its expression evaluator; `expert.py` supplies MythicWalker game adapters and a bounded instruction VM. The original desktop UI, account launcher, Python execution and external game extension suite are not bundled. Project license is included as LICENSE. Wiki source was inspected at wiki commit `a165c81b7d2177c4b5cef474f5b557280d2fbf1f`.

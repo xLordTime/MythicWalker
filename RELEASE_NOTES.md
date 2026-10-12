@@ -1,3 +1,17 @@
+## 0.1.1 Beta 9 · Deimos Expertmode und Script Studio
+
+- Originaler Deimos-Tokenizer, Parser, Semantik und Compiler, GPL-3.0, fest auf Commit d7ef56eb51c5b5316cadba40ca554ec442a5dcee. DE-WizWalker und Hooks bleiben auf dem bisherigen Stand.
+- Neue Bridge-VM: con/setvar, if/elif/else, and/or/not, Prozentvergleiche, Variablen/Zähler, Timer, blocks/calls/mixins, return/break, restart/kill, until-Überwachung, client ranges, except, any/sameany und parallele Befehle. Kein Python eval/exec.
+- Wiki-Aliasse ergänzt: loop N times, addone/minusone/reset, Timer, setyaw, nav, friendtp mit Anführungszeichen und parallele sendkey-Befehle ohne explizite Dauer.
+- Zusätzliche Live-Aktionen: relative TP, Client-TP, Laufen mit begrenzten und sauber freigegebenen Tastendrücken, UI-Pfade, virtueller Cursor, Kampf/Dialog/Frei/Zone/Fenster warten, Tränke und Relog.
+- Stats, Windowtext/Windownum, Quest-Tracking über vorhandene DE-WizWalker-APIs. Friend-TP verwendet die gepinnte WizWalker-Freundeslistenlogik.
+- Zwölf Katalogdateien werden erfolgreich mit dem neuen Compiler übersetzt. Jede wird bei aktiver Bridge erneut geprüft. Spielablauf, Bedingungen des Autors, Decks und Startzone müssen zusätzlich im DE-Spiel geprüft werden.
+- Standardbibliothek wird nach Bedarf mit transitiven Abhängigkeiten eingebunden; Expertmode-Blöcke lassen sich ebenfalls speichern/importieren/laden.
+- Script Studio: Ausführungsmodus, fünf Snippets, Tab-Einrückung, Ctrl+Enter zum Start, Ctrl+S zum Speichern, suchbare Funktionsreferenz mit Status und HTTPS-Textimport in den Editor.
+- Playstyle-Editor und Runtime: Prioritäten, Runden, benannte Karten, Typfilter, Enchants, self/enemy/boss/ally und Mehrfachziele, Gesundheits-/Mana-/Effektbedingungen, draw und willcast. Inline-loadplaystyle, togglecombat und Auto-Combat arbeiten mit dem Bot.
+- Grenzen: buypotions derzeit nur Commons/Hilda. Autopet, Deck-Presets, Welt-Navigator, Drop-Tracking und neue gambit/clear/echo/swap/req_met-Kartenfilter bleiben offen und werden nicht als umgesetzt ausgegeben.
+- Maximal 64 KB Bot, 10.000 kompilierte Anweisungen, 128 Stackeinträge. Expertmode-Laufzeit nutzt das eingestellte Automatik-Zeitlimit; der Basis-Runner und Demo bleiben verfügbar.
+
 ## 0.1.1 Beta 8 · Dashboard und Freecam-TP
 
 - Rechtsklick auf „Dashboard öffnen“ im Widget kopiert den aktiven Pairing-Code als Unicode in die Zwischenablage. Der Code wird nicht in Diagnose-Logs geschrieben.
