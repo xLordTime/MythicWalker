@@ -1,3 +1,13 @@
+## v0.1.1-beta.14 — Bewegung, Cam-TP und Fisch-Bot-Stabilität
+
+- Cam-TP speichert das Kameraziel, beendet die Freecam und teleportiert mit normaler Spielkamera. Der Movement-Freeze wird danach nicht wieder eingeschaltet, auch bei einem fehlgeschlagenen TP.
+- Der DE-WizWalker aktiviert beim Hooken zwei Kollisions-/Ereignis-Bypässe. MythicWalker stellt deren gesicherte Originalbytes direkt wieder her und aktiviert die Bypässe nur während eines Teleports. Auch Teleports aus Bots und Raid-Tools verwenden denselben Schutz. Rückschreibprüfung und Aufräumen nach Fehler/Abbruch sind abgedeckt.
+- Fischlisten-Abfragen geben der Ereignisschleife regelmäßig Rechenzeit zurück. Ein leerer Teich kann Stop-Befehle und Bridge-Heartbeat damit nicht mehr durch eine Endlosschleife ohne Pause verdrängen.
+- Begrenzte Fischlisten-/Pattern-Abfragen, Fortschrittsüberwachung (120 Sekunden), konkrete letzte Aktivität und Wartezeit im Angel-Tab.
+- Stop bleibt kooperativ: Nach 10 Sekunden erhält die Weboberfläche einen konkreten Zwischenstatus, während ein ausstehender Spielzugriff und die Wiederherstellung weiterlaufen. Es wird nicht parallel enthookt.
+- Geschlossene Spielclients beenden den Angel-Lauf. Nicht mehr existierender Prozessspeicher wird weder beschrieben noch als erfolgreich wiederhergestellt ausgewiesen.
+- Prüfung: Regressionstests und Windows-Build/EXE-Prüfung. Die Ursache des gemeldeten Spielabsturzes ist ohne vollständiges Bridge-Protokoll und Live-Spiel nicht abschließend nachgewiesen.
+
 ## v0.1.1-beta.13 — Raid-Tools und Account-Auswahl
 
 - Neuer Raid-Tab mit Voracious Void, Crying Sky, Cabal’s Revenge, Ghastly Conspiracy und Blighted Veil.

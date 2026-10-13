@@ -101,7 +101,7 @@ class FishingTests(unittest.IsolatedAsyncioTestCase):
         c=Client();b=self.bridge(c)
         with original_core(c) as core:
             core.sell_basket=AsyncMock(wraps=core.sell_basket)
-            await b.fishing.start(['42'],{'max_catches':101,'game_state_wait':.001});await asyncio.wait_for(b.fishing.task,5)
+            await b.fishing.start(['42'],{'max_catches':101,'game_state_wait':.001});await asyncio.wait_for(b.fishing.task,12)
             self.assertEqual(b.fishing.data['catches'],101);core.sell_basket.assert_awaited_once_with(c);self.originals(c)
             await b.fishing.start(['42'],{'max_catches':1});await asyncio.wait_for(b.fishing.task,3)
             self.assertEqual(b.fishing.data['catches'],1);self.assertIsNone(b.fishing.data['error']);self.originals(c)
@@ -170,3 +170,55 @@ class FishingTests(unittest.IsolatedAsyncioTestCase):
     @unittest.skipUnless(sys.platform=='win32','Windows native dependencies')
     def test_real_windows_core_import(self):
         subprocess.run([sys.executable,'-c','from vendor import fishbot_de; from memobj.process.windows.module import WindowsModule; import os; m=WindowsModule(name="kernel32.dll",base_address=0,executable_path=os.path.join(os.environ["WINDIR"],"System32","kernel32.dll"),size=0,process=None); assert m.get_symbol_with_name("GetTickCount")>0; print(fishbot_de.Speedhack.__name__)'],cwd=ROOT/'bridge',check=True,capture_output=True,text=True)
+
+class FishingResponsivenessTests(unittest.IsolatedAsyncioTestCase):
+    bridge=FishingTests.bridge
+    originals=FishingTests.originals
+    async def test_empty_pond_yields_and_stop_restores_without_hanging(self):
+        c=Client();c.fish.template=AsyncMock(return_value=types.SimpleNamespace(rank=AsyncMock(return_value=3),school_name=AsyncMock(return_value='Life')))
+        calls=0
+        async def fishes():
+            nonlocal calls
+            calls+=1
+            return [c.fish] if calls==1 else []
+        c.manager=AsyncMock(return_value=types.SimpleNamespace(fish_list=fishes));c.game_client.fishing_manager=c.manager
+        b=self.bridge(c)
+        with original_core(c):
+            await b.fishing.start(['42'],{})
+            await asyncio.sleep(.1)
+            self.assertTrue(b.fishing.running)
+            await asyncio.wait_for(b.fishing.stop(),1)
+        self.originals(c);self.assertTrue(b.fishing.data['restored'])
+    async def test_stop_during_pattern_setup_finishes_early_and_restores(self):
+        c=Client();b=self.bridge(c)
+        with original_core(c):
+            await b.fishing.start(['42'],{})
+            while len(c.reader.patterns)<2:await asyncio.sleep(0)
+            await asyncio.wait_for(b.fishing.stop(),1)
+        self.assertLess(len(c.reader.patterns),31);self.originals(c)
+    async def test_closed_client_stops_without_restoring_into_dead_process(self):
+        c=Client();alive=True;c.is_running=lambda:alive;b=self.bridge(c)
+        c.status=AsyncMock(return_value=Status.waiting);c.fish.status_code=c.status
+        with original_core(c):
+            await b.fishing.start(['42'],{});await asyncio.sleep(.08)
+            alive=False
+            await asyncio.wait_for(b.fishing.task,1)
+            await b.fishing.stop()
+        self.assertFalse(b.fishing.running);self.assertTrue(b.fishing.data['client_closed']);self.assertFalse(b.fishing.data['restored']);self.assertIsNone(b.cleanup_error)
+    async def test_stop_response_timeout_leaves_cleanup_running(self):
+        c=Client();b=self.bridge(c);started=asyncio.Event();release=asyncio.Event()
+        async def key(*args):started.set();await release.wait()
+        c.send_key=key
+        with original_core(c):
+            await b.fishing.start(['42'],{});await started.wait()
+            with self.assertRaisesRegex(RuntimeError,'Stop ist angefordert'):await b.fishing.stop(timeout=.01)
+            self.assertTrue(b.fishing.running);self.assertTrue(b.fishing.data['stopping'])
+            release.set();await b.fishing.stop()
+        self.originals(c)
+    async def test_stalled_bite_watchdog_stops_and_restores(self):
+        c=Client();b=self.bridge(c);b.fishing.STALL_SECONDS=.02
+        c.fish.status_code=AsyncMock(return_value=Status.waiting)
+        with original_core(c):
+            await b.fishing.start(['42'],{})
+            await asyncio.wait_for(b.fishing.task,2)
+        self.assertIn('ohne Fortschritt',b.fishing.data['error']);self.assertTrue(b.fishing.data['restored']);self.originals(c)

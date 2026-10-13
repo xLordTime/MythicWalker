@@ -322,7 +322,7 @@ class Bridge:
             raise ValueError('Raid-Aktion zuerst stoppen.')
         if op=='raid_start':return await self.raids.start(args.get('ids'),args.get('raid'),args.get('action'),args.get('target'))
         if op=='fishing_start':return await self.fishing.start(args.get('ids'),args.get('settings',{}))
-        if op=='fishing_stop':return await self.fishing.stop()
+        if op=='fishing_stop':return await self.fishing.stop(timeout=10)
         if self.fishing.running and op not in {'stop','unhook','scan','snapshot','get_settings','pause_hotkeys','shortcut_context','widget'}:
             raise ValueError('Fisch-Bot zuerst stoppen.')
         if op=='movement':return await self.movement(args.get('action'),args)

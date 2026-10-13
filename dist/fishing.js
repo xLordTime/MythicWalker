@@ -18,9 +18,9 @@ function createFishing({state,command,toast,log}){
   $('fish-start').disabled=!live||selected.length!==1||!selected[0]?.hooked||current.running||state.running||state.raidRunning||busy||accounts.busy||Object.values(state.automations).some(Boolean);
   $('fish-stop').disabled=!live||!current.running||busy;
   fields.forEach(id=>$(id).disabled=current.running||busy);$('fish-defaults').disabled=current.running||busy;
-  $('fishing-status').textContent=current.running?'Angelt':!live?'Live-Bridge erforderlich':current.error?'Fehler':'Bereit';
-  $('fish-count').textContent=String(current.catches||0);$('fish-phase').textContent=current.phase||'Bereit';
-  $('fish-restore').textContent=current.restored?'Keine Angel-Patches aktiv · Originalcode bestätigt':'Angel-Patches aktiv · Stoppen stellt Originalcode wieder her';
+  $('fishing-status').textContent=current.stopping?'Stoppt …':current.running?'Angelt':!live?'Live-Bridge erforderlich':current.error?'Fehler':'Bereit';
+  $('fish-count').textContent=String(current.catches||0);$('fish-phase').textContent=(current.phase||'Bereit')+(current.running&&current.idle_seconds>=10?` · ${current.idle_seconds} s`:'');$('fish-activity').textContent=current.last_activity||'';
+  $('fish-restore').textContent=current.client_closed?'Spielprozess beendet · kein Wiederherstellen in einem geschlossenen Prozess':current.restored?'Keine Angel-Patches aktiv · Originalcode bestätigt':'Angel-Patches aktiv · Stoppen stellt Originalcode wieder her';
   $('fish-error').hidden=!current.error;$('fish-error').textContent=current.error||'';
  }
  async function perform(op,args={}){busy=true;render();try{current=await command(op,args);state.fishingRunning=!!current.running;log(op==='fishing_start'?'Fisch-Bot gestartet.':'Fisch-Bot gestoppt; Aufräumstatus prüfen.');}catch(e){toast(e.message);log(e.message,'error');}finally{busy=false;render();}}

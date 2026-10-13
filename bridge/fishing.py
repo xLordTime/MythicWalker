@@ -81,14 +81,42 @@ def native_flush(client):
 class CoreSession:
     """Temporarily bind an unchanged upstream module to one bridge client."""
     def __init__(self,core,client,on_log):
-        self.core=core;self.client=client;self.original={name:getattr(core,name) for name in ('MemoryReader','patch','reset_patch','Speedhack','logger')}
+        self.core=core;self.client=client;self.original={name:getattr(core,name) for name in ('MemoryReader','patch','reset_patch','Speedhack','logger','fetch_fish_list')}
         self.old_print=core.__dict__.get('print');self.code_writes=False;self.speeds=[]
         self.journal=PatchJournal(self.original['MemoryReader'](client._pymem),native_flush(client))
         session=self
+        async def fish_list(manager):
+            # WizWalker memory coroutines can finish without yielding. Always let
+            # websocket stop, heartbeat and health monitoring run between polls.
+            deadline=time.monotonic()+10
+            while not core.should_exit():
+                await asyncio.sleep(max(.01,core.SLEEP_POLL_INTERVAL))
+                if not client.is_running():
+                    core.request_shutdown()
+                    raise RuntimeError('Spielclient geschlossen; Angeln wird beendet.')
+                try:
+                    async with asyncio.timeout(5):return await manager.fish_list()
+                except TimeoutError:
+                    raise RuntimeError('Fischliste antwortet seit 5 Sekunden nicht; Angeln wird beendet.') from None
+                except RuntimeError as exc:
+                    if not client.is_running() or time.monotonic()>=deadline:raise
+                    on_log('Fischliste vorübergehend nicht lesbar: '+str(exc),'warning')
+                    await asyncio.sleep(max(.05,core.SLEEP_RETRY_DELAY))
+            return []
         class Reader:
             def __init__(self,pymem):self.reader=session.original['MemoryReader'](pymem)
             def __getattr__(self,name):return getattr(self.reader,name)
+            async def pattern_scan(self,pattern,**kwargs):
+                await asyncio.sleep(0)
+                if core.should_exit():raise asyncio.CancelledError()
+                if not client.is_running():raise RuntimeError('Spielclient während der Patternsuche geschlossen.')
+                on_log('Angelpattern suchen: '+pattern.hex(' ')[:100],'info')
+                try:
+                    async with asyncio.timeout(8):return await self.reader.pattern_scan(pattern,**kwargs)
+                except TimeoutError:
+                    raise RuntimeError('Angelpattern-Suche antwortet seit 8 Sekunden nicht.') from None
             async def write_bytes(self,address,value):
+                if not client.is_running():raise RuntimeError('Kein Schreiben: Spielclient ist geschlossen.')
                 if session.code_writes:return await session.journal.write(address,value)
                 return await self.reader.write_bytes(address,value)
         async def apply(client):
@@ -96,7 +124,9 @@ class CoreSession:
             try:return await session.original['patch'](client)
             finally:session.code_writes=False
         async def reset(client,address_bytes):
-            try:await session.journal.restore()
+            try:
+                if client.is_running():await session.journal.restore()
+                else:session.journal.entries.clear()
             finally:
                 core._cleanup_state['address_bytes']=[(a,b) for _,a,b in session.journal.entries]
                 core._cleanup_state['patches_applied']=bool(session.journal.entries)
@@ -133,8 +163,14 @@ class CoreSession:
             def cleanup(self):
                 if self.saved:raise RuntimeError('Speedhack-Hooks sind noch aktiv; Speicher bleibt erhalten.')
                 return super().cleanup()
-        core.MemoryReader=Reader;core.patch=apply;core.reset_patch=reset;core.Speedhack=Speed;core.logger=Log();core.print=lambda *args,**kwargs:core.logger.info(' '.join(map(str,args)))
+        core.fetch_fish_list=fish_list;core.MemoryReader=Reader;core.patch=apply;core.reset_patch=reset;core.Speedhack=Speed;core.logger=Log();core.print=lambda *args,**kwargs:core.logger.info(' '.join(map(str,args)))
     async def restore(self):
+        if not self.client.is_running():
+            # The address space no longer exists. Do not write stale addresses
+            # into a closed/restarted process or report a verified restoration.
+            self.journal.entries.clear()
+            logger.warning('fishing.cleanup.process_gone pid=%s',self.client.process_id)
+            return
         errors=[]
         for speed in self.speeds:
             try:speed.detach();speed.cleanup()
@@ -149,20 +185,25 @@ class CoreSession:
         self.core.clear_external_client()
 
 class Fishing:
+    STALL_SECONDS=120
     def __init__(self,bridge):
+        self.stage_started=time.monotonic();self.last_notice=0
         self.bridge=bridge;self.task=None;self.core=None;self.stop_requested=False;self.stop_lock=asyncio.Lock()
         self.data={'running':False,'phase':'Bereit','catches':0,'error':None,'restored':True,'client':None}
     @property
     def running(self):return bool(self.task and not self.task.done())
     async def publish(self):await self.bridge.send({'type':'fishing','fishing':dict(self.data)})
     def on_log(self,text,level):
+        old_phase=self.data.get('phase')
+        self.data['last_activity']=text[-500:]
         match=re.search(r'total catches=(\d+)',text)
         if match:
-            self.data['catches']=int(match[1]);self.data['phase']='Fang abgeschlossen'
+            self.data['catches']=int(match[1]);self.data['phase']='Fang abgeschlossen';self.stage_started=time.monotonic()
             if getattr(self,'config',{}).get('max_catches') and self.data['catches']>=self.config['max_catches']:
                 self.core.request_shutdown()
         for fragment,phase in [('Preparing','Alle Angel-Patches vorbereiten'),('Ready for Fish','Bereit zum Angeln'),('opening the fishing window to refresh','Teich erneuern'),('Icon1 click sent','Warten auf Biss'),('Sending SPACEBAR','Fisch einholen'),('Basket cleanup requested','Fischkorb leeren'),('Unhooking patches','Originalbytes wiederherstellen')]:
             if fragment in text:self.data['phase']=phase
+        if self.data.get('phase')!=old_phase:self.stage_started=time.monotonic();self.last_notice=0
         if level in ('error','exception'):self.data['error']=text
     async def start(self,ids,config):
         config=options(config)
@@ -177,28 +218,53 @@ class Fishing:
         from vendor import fishbot_de
         self.core=fishbot_de
         for key,(name,_) in CONFIG.items():setattr(self.core,name,config[key])
-        self.stop_requested=False;self.config=config
-        self.data={'running':True,'phase':'Original-FishBot starten','catches':0,'error':None,'restored':False,'client':ids[0]}
+        self.stop_requested=False;self.config=config;self.stage_started=time.monotonic();self.last_notice=0
+        self.data={'running':True,'phase':'Original-FishBot starten','catches':0,'error':None,'restored':False,'client':ids[0],'stopping':False,'client_closed':False,'idle_seconds':0,'last_activity':'Start angefordert'}
         self.task=asyncio.create_task(self.run(client,config))
         return dict(self.data)
-    async def stop(self):
+    def request_stop(self):
+        self.stop_requested=True
+        if self.core:self.core.request_shutdown()
+        if self.running:
+            self.data['stopping']=True
+            self.data['phase']='Stop angefordert · laufenden Schritt beenden und Originalbytes wiederherstellen'
+    async def stop(self,timeout=None):
+        self.request_stop()
+        await self.publish()
         async with self.stop_lock:
-            self.stop_requested=True
-            if self.core:self.core.request_shutdown()
-            if self.running:await asyncio.shield(self.task)
-            if not self.data['restored']:raise RuntimeError(self.data['error'] or 'Angel-Aufräumen fehlgeschlagen.')
+            if self.running:
+                try:
+                    if timeout is None:await asyncio.shield(self.task)
+                    else:await asyncio.wait_for(asyncio.shield(self.task),timeout)
+                except TimeoutError:
+                    raise RuntimeError('Stop ist angefordert. Ein Spielzugriff antwortet noch nicht; die Bridge räumt weiter auf. Letzte Aktion: '+self.data.get('last_activity','unbekannt')) from None
+            if not self.data['restored'] and not self.data.get('client_closed'):raise RuntimeError(self.data['error'] or 'Angel-Aufräumen fehlgeschlagen.')
             return dict(self.data)
     async def run(self,client,config):
         session=None;monitor=None;started=time.monotonic()
         async def watch():
             previous=None
             while True:
+                idle=time.monotonic()-self.stage_started
+                self.data['idle_seconds']=int(idle)
+                if not client.is_running() and not self.data.get('client_closed'):
+                    self.data['client_closed']=True
+                    self.data['error']=f'Spielclient PID {client.process_id} wurde geschlossen. Angeln wird beendet.'
+                    self.request_stop()
+                    await self.bridge.log(self.data['error'],'error')
+                elif idle>=self.STALL_SECONDS and not self.stop_requested:
+                    self.data['error']=f'Angeln: {self.STALL_SECONDS:g} Sekunden ohne Fortschritt bei '+self.data['phase']+'. Letzte Meldung: '+self.data.get('last_activity','')
+                    self.request_stop()
+                    await self.bridge.log(self.data['error'],'error')
                 if self.stop_requested or config['minutes'] and time.monotonic()-started>=config['minutes']*60 or config['max_catches'] and self.data['catches']>=config['max_catches']:
                     self.core.request_shutdown()
+                if idle>=30 and int(idle)//30>self.last_notice and not self.stop_requested:
+                    self.last_notice=int(idle)//30
+                    await self.bridge.log(f'Angeln PID {client.process_id}: {int(idle)} s bei {self.data["phase"]}. '+self.data.get('last_activity',''),'warning')
                 current=tuple(self.data.items())
                 if current!=previous:
                     await self.publish();previous=current
-                await asyncio.sleep(.1)
+                await asyncio.sleep(.25)
         try:
             session=CoreSession(self.core,client,self.on_log)
             self.bridge.adapter.fishing_patches[str(client.process_id)]=session
@@ -206,6 +272,8 @@ class Fishing:
             if self.stop_requested:return
             monitor=asyncio.create_task(watch())
             await self.core.main()
+        except asyncio.CancelledError:
+            self.stop_requested=True
         except Exception as exc:
             logger.exception('fishing.original.failed');self.data['error']=str(exc)
             await self.bridge.log('Angeln: '+str(exc),'error')
@@ -214,14 +282,18 @@ class Fishing:
                 monitor.cancel()
                 try:await monitor
                 except asyncio.CancelledError:pass
+                except Exception:
+                    logger.exception('fishing.monitor.failed; cleanup continues')
             try:
                 if session:await session.restore()
                 self.bridge.adapter.fishing_patches.pop(str(client.process_id),None)
-                self.data['restored']=True
+                self.data['client_closed']=not client.is_running()
+                self.data['restored']=not self.data['client_closed']
             except Exception as exc:
                 self.data['error']=str(exc);self.data['restored']=False;self.bridge.cleanup_error=str(exc)
                 logger.exception('fishing.original.cleanup_failed');await self.bridge.log(str(exc),'error')
             finally:
                 if session:session.release()
-                self.data['running']=False;self.data['phase']='Fehler · Protokoll prüfen' if self.data['error'] else 'Gestoppt · Originalbytes wiederhergestellt'
+                self.data['running']=False;self.data['stopping']=False
+                self.data['phase']='Spielclient geschlossen · keine weiteren Speicherzugriffe' if self.data.get('client_closed') else 'Fehler · Protokoll prüfen' if self.data['error'] else 'Gestoppt · Originalbytes wiederhergestellt'
                 await self.publish()

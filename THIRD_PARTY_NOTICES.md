@@ -46,3 +46,7 @@ Built and maintained by **Lxghtend**. WorldsCollideTP built by **CIick**.
 License: GPL-3.0; full license at `bridge/vendor/raids/LICENSE`.
 
 The five utility classes, raid coordinates, entity identifiers and collision teleport are adapted for MythicWalker's web UI and existing selected client. Exact adaptation notes are in `bridge/vendor/raids/UPSTREAM.json`. Upstream GUI, anonymous usage tracking, updater, foreground-client polling and duplicate hook ownership are omitted. NumPy (BSD-3-Clause) and Shapely (BSD-3-Clause; bundled GEOS under LGPL) are included by the Windows packager with their package licensing metadata.
+
+### MythicWalker runtime corrections (Beta 14)
+
+The unchanged pinned DE-WizWalker is adapted at the existing client boundary: `movement_guard.py` restores the collision-event branch bytes captured by MovementTeleportHook and scopes its bypass to one native teleport. The original captured bytes are checked after restoration. `fishing.CoreSession` wraps the original FishBot's fish-list reader and pattern scanner with cooperative polling, bounded reads and dead-process handling; fishing behavior and patch definitions remain in the credited original core.

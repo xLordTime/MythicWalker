@@ -4,6 +4,7 @@ import math
 import time
 from diagnostics import event, logger
 from settings import combat_rules
+from movement_guard import install_movement_guard
 from protocol import key, number, text, xyz
 
 class WizAdapter:
@@ -25,6 +26,7 @@ class WizAdapter:
         self.scan_errors = []
         self.playstyles = {}
         self.fishing_patches = {}
+        self.movement_guards = {}
         event('adapter.init.ready')
 
     def clients(self):
@@ -89,18 +91,23 @@ class WizAdapter:
             try:
                 event('hook.begin', pid=pid, timeout=20)
                 await asyncio.wait_for(c.activate_hooks(wait_for_ready=True, timeout=12), 20)
+                if not hasattr(self,'movement_guards'):self.movement_guards={}
+                guard=await install_movement_guard(c)
+                if guard:self.movement_guards[pid]=guard
                 event('hook.memory_validation', pid=pid)
                 # Validate basic reads before advertising the client as ready.
                 await asyncio.wait_for(c.body.position(), 3)
                 self.hooked.add(pid)
                 self.errors.pop(pid, None)
                 results.append({'pid': pid, 'ok': True})
-                event('hook.ready', pid=pid)
+                event('hook.ready', pid=pid,collision_bypass=False,mouse_override=False,movement_frozen=bool(getattr(c,'_movement_update_patched',False)),speed_override=pid in self.original_speeds)
             except BaseException as exc:
                 logger.exception('hook.failed pid=%s', pid)
                 try:
                     await c.close()
                 finally:
+                    guard=getattr(self,'movement_guards',{}).pop(pid,None)
+                    if guard:guard.release()
                     self.hooked.discard(pid)
                 if isinstance(exc, asyncio.CancelledError):
                     raise
@@ -124,6 +131,8 @@ class WizAdapter:
                 await c.camera_elastic()
                 self.freecam.discard(str(c.process_id))
             await c.close()
+            guard=getattr(self,'movement_guards',{}).pop(str(c.process_id),None)
+            if guard:guard.release()
             self.hooked.discard(str(c.process_id))
             self.errors.pop(str(c.process_id), None)
         return {'unhooked': ids}
@@ -346,22 +355,19 @@ class WizAdapter:
                 if camera is None:raise ValueError('Freecam nicht verfügbar.')
                 p=await camera.position();target=self.XYZ(*xyz([p.x,p.y,p.z]))
                 event('camera_tp.begin', pid=c.process_id, target=[target.x,target.y,target.z])
-                # Freecam patches out the movement update that consumes the
-                # teleport request. Keep the camera active; unfreeze only while
-                # that request is applied, then always restore its patch.
-                await c._unpatch_movement_update()
-                try:
-                    await c.teleport(target)
-                    async with asyncio.timeout(3):
-                        while True:
-                            actual=await c.body.position()
-                            if math.dist([actual.x,actual.y,actual.z],[target.x,target.y,target.z])<25:break
-                            await asyncio.sleep(.05)
-                    event('camera_tp.confirmed', pid=c.process_id, actual=[actual.x,actual.y,actual.z])
-                    result.append({'id':str(c.process_id),'position':[actual.x,actual.y,actual.z],'verified':True})
-                finally:
-                    await c._patch_movement_update()
-                    event('camera_tp.freecam_restored', pid=c.process_id)
+                # Restore normal camera/input handlers before submitting movement.
+                # Never reapply the freeze after this command, including on failure.
+                await c.camera_elastic()
+                self.freecam.discard(str(c.process_id))
+                await c.teleport(target)
+                async with asyncio.timeout(3):
+                    while True:
+                        actual=await c.body.position()
+                        if math.dist([actual.x,actual.y,actual.z],[target.x,target.y,target.z])<25:break
+                        await asyncio.sleep(.05)
+                if await c.game_client.is_freecam():raise RuntimeError('Kamera-TP: Freecam wurde nicht beendet.')
+                event('camera_tp.confirmed', pid=c.process_id, actual=[actual.x,actual.y,actual.z],freecam=False)
+                result.append({'id':str(c.process_id),'position':[actual.x,actual.y,actual.z],'verified':True,'freecam':False})
             elif op == 'rename':c.title=text(args.get('title'),80)
             elif op == 'stats':
                 values={}
@@ -488,6 +494,8 @@ class WizAdapter:
                     await c.camera_elastic()
                     self.freecam.discard(str(c.process_id))
                 await c.close()
+                guard=getattr(self,'movement_guards',{}).pop(str(c.process_id),None)
+                if guard:guard.release()
                 self.hooked.discard(str(c.process_id))
             except Exception as exc:
                 errors.append(str(exc))
