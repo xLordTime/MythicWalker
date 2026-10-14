@@ -98,6 +98,7 @@ class Bridge:
         self.automations = Automations(self)
         self.fishing = Fishing(self)
         self.raids = Raids(self)
+        self.launcher = None
 
     async def set_script_playstyle(self,source,ids):
         rows=parse_style(source)
@@ -303,6 +304,9 @@ class Bridge:
         raise ValueError('Unbekannte Movement-Aktion.')
 
     async def dispatch(self, op, args):
+        if op == 'launcher_ticket':
+            if not self.launcher or self.demo:raise ValueError('Launcher benötigt eine aktuelle Windows-Live-Bridge.')
+            return self.launcher.issue_ticket()
         if op == 'get_diagnostics': return bundle()
         if op == 'script_capabilities':
             from expert import SUPPORTED_COMMANDS, UNSUPPORTED
@@ -460,7 +464,7 @@ class Bridge:
                 self.session_generation += 1
                 self.hotkeys_paused = False
                 print('Dashboard gekoppelt (' + ('DEMO' if self.demo else 'LIVE') + ').', flush=True)
-                await self.send({'type':'ready','capabilities':['raid'],'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
+                await self.send({'type':'ready','capabilities':['raid']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
                 await self.configure_hotkeys()
                 async with self.lock:
                     try:
@@ -507,6 +511,8 @@ class Bridge:
                     poll.cancel()
                     with contextlib.suppress(asyncio.CancelledError): await poll
                 if self.ws is ws:
+                    if self.launcher:
+                        async with self.launcher.lock:await self.launcher.revoke()
                     self.session_generation += 1
                     await asyncio.to_thread(self.hotkeys.stop)
                     self.shortcut_context = {'ids':[], 'source':''}
@@ -526,6 +532,8 @@ class Bridge:
 
     async def shutdown(self, app):
         self.shutting_down = True
+        if self.launcher:
+            async with self.launcher.lock:await self.launcher.revoke()
         self.session_generation += 1
         await asyncio.to_thread(self.hotkeys.stop)
         await self.automations.stop()
@@ -561,7 +569,7 @@ def create_app(bridge, web_dir):
     app.router.add_get('/health',health)
     app.router.add_get('/',index)
     # Serve only the explicit frontend assets, never bridge source/certificates.
-    for filename in ['app.js','accounts.js','raids.js','raid-catalog.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
+    for filename in ['app.js','launcher.js','accounts.js','raids.js','raid-catalog.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
     # Only public, packaged icon assets; never expose other bridge directories.
@@ -605,7 +613,11 @@ def main():
     print('Nur Loopback. Beenden mit Strg+C.\n',flush=True)
     loop = bridge_event_loop()
     print('Netzwerk-Loop: ' + type(loop).__name__, flush=True)
-    web.run_app(create_app(bridge,web_dir),host='127.0.0.1',port=18761,
+    app=create_app(bridge,web_dir)
+    if not args.demo:
+        from launcher_service import attach_launcher
+        attach_launcher(app,bridge,tls)
+    web.run_app(app,host='127.0.0.1',port=18761,
                 ssl_context=tls,access_log=None,loop=loop)
 
 if __name__ == '__main__': main()

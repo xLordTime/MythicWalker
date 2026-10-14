@@ -1,3 +1,13 @@
+## v0.1.1-beta.15 — Lokaler Wiz-Q-Launcher
+
+- Launcher als erster Tab und neue Startseite; eigenständige lokale Kontoansicht auf Loopback-Port 18762 mit Fenster-Fallback.
+- Konten hinzufügen, bearbeiten, löschen und auswählen; verschlüsselter DPAPI-Tresor im bestehenden oder neu angelegten `%LOCALAPPDATA%\WizQLauncher`-Profil.
+- Bestehende Wiz-Q-Konten lokal importieren; Originalprofil bleibt unverändert. Masterpasswort und DPAPI-Schlüsselformate unterstützt. Kein Cloud-Sync, keine Konto-Logs oder externen Launcher-Integrationen.
+- Acht Regionen, Installationssuche, editierbare Pfade, Einzel-/Mehrfachstart und Auto-Login nach Wiz-Q-Verfahren. Login ausschließlich an den gestarteten Prozess, begrenzte Wartezeiten, stopbare Hintergrundaufträge.
+- Online-Dashboard erhält nur kurzlebige Einmaltickets. Lokale API mit eigener Origin, exakter Origin-/Host-Prüfung, lokalem Sitzungsschlüssel, No-Store und restriktiver CSP. Sitzung endet nach 30 Minuten und bei Bridge-Disconnect.
+- Native Bridge: normaler Pfeilcursor auch beim Hover, zusätzlicher lokaler Launcher-Link; Dashboard-Öffnen blockiert die Widget-Nachrichtenschleife nicht mehr.
+- Automatische Tests für Import/Verschlüsselung, Sitzung, Origin-Isolation, Token-Replay, Fehlermeldungen und Start/Stop. Windows-DPAPI und gepackte Launcher-Dateien im EXE-Smoke-Test. Live-Spielanmeldungen und Browser-Einbettung müssen auf Windows geprüft werden.
+
 ## v0.1.1-beta.14 — Bewegung, Cam-TP und Fisch-Bot-Stabilität
 
 - Cam-TP speichert das Kameraziel, beendet die Freecam und teleportiert mit normaler Spielkamera. Der Movement-Freeze wird danach nicht wieder eingeschaltet, auch bei einem fehlgeschlagenen TP.

@@ -40,6 +40,10 @@ def trust_certificate(cert):
 def main():
     if sys.platform!='win32':raise RuntimeError('Desktop-App benötigt Windows.')
     if '--smoke-test' in sys.argv:
+        from launcher_vault import dpapi
+        from launcher_service import local_app, LauncherService
+        if dpapi(dpapi(b'launcher-smoke'),True)!=b'launcher-smoke':raise RuntimeError('Launcher DPAPI smoke test failed.')
+        if not (Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'launcher_web'/'index.html').is_file():raise RuntimeError('Local launcher assets missing.')
         from raids import native_modules
         native_modules()
         from vendor import fishbot_de
@@ -67,7 +71,19 @@ def main():
         result = webbrowser.open(launch['url'])
         event('browser.open.return', accepted=result)
         return result
-    widget.browser=open_browser
+    widget.browser=lambda:threading.Thread(target=open_browser,name='OpenDashboard',daemon=True).start()
+    def open_local_launcher():
+        bridge=launch['bridge'];loop=launch['loop']
+        if not bridge or not loop or not bridge.launcher:
+            widget.report('Launcher noch nicht bereit','Bridge-Start abwarten.');return
+        async def open_local():
+            try:
+                url=bridge.launcher.issue_ticket()['url']
+                await asyncio.to_thread(webbrowser.open,url)
+            except Exception:
+                widget.report('Launcher nicht verfügbar','Lokalen Port 18762 und Bridge-Status prüfen.')
+        asyncio.run_coroutine_threadsafe(open_local(),loop)
+    widget.launcher=open_local_launcher
     def copy_pairing():
         if not launch['token']:
             widget.report('Pairing noch nicht bereit','Warte, bis die Bridge gestartet ist.');return
@@ -91,7 +107,11 @@ def main():
         launch.update(token=token,bridge=bridge,loop=asyncio.get_running_loop())
         tls=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);tls.minimum_version=ssl.TLSVersion.TLSv1_2;tls.load_cert_chain(cert,key)
         web_dir=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'web'
-        runner=web.AppRunner(create_app(bridge,web_dir));await runner.setup()
+        app=create_app(bridge,web_dir)
+        if '--demo' not in sys.argv:
+            from launcher_service import attach_launcher
+            attach_launcher(app,bridge,tls)
+        runner=web.AppRunner(app,access_log=None);await runner.setup()
         try:
             widget.report('Bridge starten','HTTPS · localhost:18761')
             await web.TCPSite(runner,'127.0.0.1',18761,ssl_context=tls).start()

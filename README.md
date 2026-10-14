@@ -1,3 +1,25 @@
+## Launcher · Beta 15
+
+Der erste Tab **Launcher** integriert die Kernfunktionen von [Wiz Q Launcher](https://github.com/xLordTime/wiz-q-launcher): lokale Kontoverwaltung, Import bestehender Konten, Regions-/Installationsauswahl, Mehrfachstart und Auto-Login.
+
+1. Neue Bridge-EXE starten und Dashboard verbinden.
+2. **Launcher → Launcher verbinden**; lokalen Netzwerkzugriff erlauben. Falls die Einbettung blockiert wird, **Eigenes Fenster** nutzen. Alternativ **Launcher lokal öffnen** im Bridge-Widget.
+3. In der lokalen Ansicht den Windows-Kontotresor entsperren. Installationen suchen oder deren Ordner oberhalb von `Bin` angeben und speichern.
+4. Unter **Wiz Q übernehmen** bestehende Konten importieren (ggf. Masterpasswort eingeben), oder Konten hinzufügen.
+5. Konten auswählen und starten. Auto-Login sendet die Eingaben einmalig an den neu gestarteten Prozess; Anmeldung im Spielfenster prüfen. Bei langsamen Starts Wartezeit erhöhen. Danach im Control Center Clients suchen und gezielt hooken.
+
+### Lokale Daten und Sicherheitsgrenzen
+
+- Profil immer `%LOCALAPPDATA%\WizQLauncher`; bestehender Ordner wird verwendet, andernfalls angelegt. Originaldateien `config.json` und `data/accounts.enc.json` werden nur gelesen.
+- Eigener Kontotresor `data/mythic-accounts.dpapi`: alle Kontodaten mit Windows DPAPI für den aktuellen Benutzer verschlüsselt. Konfiguration `mythic-launcher.json` enthält nur lokale Installationspfade und die Login-Wartezeit. Keine parallelen Schreibzugriffe auf das Wiz-Q-Originalformat.
+- Import unterstützt das Wiz-Q-Fernet/PBKDF2-Masterpasswortformat, lokal per DPAPI gespeicherte Schlüssel, den alten Platzhaltermodus und ältere Klartextlisten. Das Original wird nicht verändert oder automatisch sicherer gemacht. Import ist kein fortlaufender Abgleich.
+- Kontoansicht ausschließlich von `https://localhost:18762` (Loopback). Die Online-Oberfläche enthält nur einen getrennten Frame und erhält keine Accountdaten. Eine strikte Content Security Policy erlaubt dieser lokalen Ansicht keine externen Skripte, Formulare oder Netzwerkziele.
+- Einmaliges Öffnungsticket: 30 Sekunden gültig. Erst die lokale Ansicht kann es in einen Sitzungsschlüssel umtauschen. API nur per POST, exakte lokale Origin-/Host-Prüfung, kein CORS, keine Cookies, kein Browser-Speicher, keine Konto-/Passwort-Logs. Sitzung maximal 30 Minuten, widerrufen beim Bridge-Disconnect; Schließen der Ansicht meldet die Sitzung ab.
+- Keine Discord-Präsenz, Webhooks, externes Fehlerreporting oder Cloud-Backups aus dem Launcher. Wizard101 selbst muss für die Anmeldung seinen Spielserver kontaktieren. Die lokale Kontoverwaltung führt keine eigene Online-Anmeldung durch.
+- Konto-Aliasse und Benutzernamen werden nicht in Spiel-Fenstertitel geschrieben. Konten wählen und bearbeiten erfolgt ausschließlich in der lokalen Ansicht; allgemeine Bridge-Statusdaten bleiben separat.
+- DPAPI schützt gespeicherte Dateien, nicht vor Schadsoftware mit denselben Windows-Benutzerrechten, kompromittierten lokalen Programmen oder berechtigten Browser-Erweiterungen. Kein Schutzversprechen für einen bereits kompromittierten Rechner. Auto-Updates verwenden weiterhin die bestehende GitHub-/Prüfsummenprüfung; eine unabhängige Update-Signatur ist noch nicht umgesetzt.
+- Unterstützte Launcher-Regionen: DE/US/FR/IT/GB/PL/ES/GR. Memory-Hooks bleiben auf den gepinnten DE-WizWalker abgestimmt. Kein automatisches Hooken beim Login, keine Übernahme der Wiz-Q-Memory-Erweiterungen, kein erzwungenes Schließen laufender Spiele beim Stoppen.
+
 # Mythic Walker · 0.1.1 Beta 10
 
 ## Script Studio und Deimos Expertmode (Beta 9)

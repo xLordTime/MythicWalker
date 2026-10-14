@@ -50,3 +50,9 @@ The five utility classes, raid coordinates, entity identifiers and collision tel
 ### MythicWalker runtime corrections (Beta 14)
 
 The unchanged pinned DE-WizWalker is adapted at the existing client boundary: `movement_guard.py` restores the collision-event branch bytes captured by MovementTeleportHook and scopes its bypass to one native teleport. The original captured bytes are checked after restoration. `fishing.CoreSession` wraps the original FishBot's fish-list reader and pattern scanner with cooperative polling, bounded reads and dead-process handling; fishing behavior and patch definitions remain in the credited original core.
+
+## Wiz Q Launcher integration (MIT)
+
+Source: https://github.com/xLordTime/wiz-q-launcher/tree/bf3759d89bdd4682f09df9999792d8c930c5b7a7
+
+`bridge/launcher_vault.py` adapts account-format compatibility from `security/crypto.py`; `launcher_native.py` adapts the launch arguments, region metadata, discovery and login sequence from `services/launcher.py` and `core/config.py`. The implementation is separated from the original GUI and external integrations. Local profile layout follows `app/main.py`. Author/project: xLordTime / Wiz Q Launcher. Original MIT notice: `bridge/launcher_web/WIZ_Q_LICENSE.txt`. No original account, configuration or log files are bundled.

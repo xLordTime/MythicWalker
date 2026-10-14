@@ -10,11 +10,11 @@
 <link rel="icon" sizes="32x32" type="image/png" href="assets/mythicwalker-32.png">
 <link rel="apple-touch-icon" href="assets/mythicwalker-180.png">
 <link rel="stylesheet" href="style.css">
-<script defer src="diagnostics.js"></script><script defer src="settings.js"></script><script defer src="tools.js"></script><script defer src="default-library.js"></script><script defer src="botlang.js"></script><script defer src="bot-catalog.js"></script><script defer src="handoff.js"></script><script defer src="script-functions.js"></script><script defer src="script-studio.js"></script><script defer src="accounts.js"></script><script defer src="raid-catalog.js"></script><script defer src="raids.js"></script><script defer src="fishing.js"></script><script defer src="app.js"></script>
+<script defer src="diagnostics.js"></script><script defer src="settings.js"></script><script defer src="tools.js"></script><script defer src="default-library.js"></script><script defer src="botlang.js"></script><script defer src="bot-catalog.js"></script><script defer src="handoff.js"></script><script defer src="script-functions.js"></script><script defer src="script-studio.js"></script><script defer src="accounts.js"></script><script defer src="raid-catalog.js"></script><script defer src="raids.js"></script><script defer src="fishing.js"></script><script defer src="launcher.js"></script><script defer src="app.js"></script>
 </head>
 <body>
-<aside class="sidebar"><a class="brand" href="#overview"><span class="brand-icon"><img src="assets/mythicwalker.svg" alt="" width="44" height="44"></span><span>MYTHIC<span class="brand-sub">WALKER</span></span></a><div class="nav-label">CONTROL CENTER</div>
-<nav><button class="nav active" data-page="overview" data-icon="grid" title="Übersicht" aria-label="Übersicht">Übersicht</button><button class="nav " data-page="hooking" data-icon="link" title="Hooking" aria-label="Hooking">Hooking</button><button class="nav " data-page="tools" data-icon="navigation" title="Tools" aria-label="Tools">Tools</button><button class="nav " data-page="scripts" data-icon="code" title="Skripte / Bot" aria-label="Skripte / Bot">Skripte / Bot</button><button class="nav" data-page="fishing" data-icon="fish" title="Angeln" aria-label="Angeln">Angeln</button><button class="nav" data-page="raid" data-icon="combat" title="Raid" aria-label="Raid">Raid</button><button class="nav " data-page="combat" data-icon="combat" title="Combat" aria-label="Combat">Combat</button></nav><nav><button class="nav" data-page="settings" data-icon="settings" title="Einstellungen" aria-label="Einstellungen">Einstellungen</button></nav><div class="nav-label bottom-label">VERBINDUNG</div>
+<aside class="sidebar"><a class="brand" href="#launcher"><span class="brand-icon"><img src="assets/mythicwalker.svg" alt="" width="44" height="44"></span><span>MYTHIC<span class="brand-sub">WALKER</span></span></a><div class="nav-label">CONTROL CENTER</div>
+<nav><button class="nav active" data-page="launcher" data-icon="play" title="Launcher" aria-label="Launcher">Launcher</button><button class="nav" data-page="overview" data-icon="grid" title="Übersicht" aria-label="Übersicht">Übersicht</button><button class="nav " data-page="hooking" data-icon="link" title="Hooking" aria-label="Hooking">Hooking</button><button class="nav " data-page="tools" data-icon="navigation" title="Tools" aria-label="Tools">Tools</button><button class="nav " data-page="scripts" data-icon="code" title="Skripte / Bot" aria-label="Skripte / Bot">Skripte / Bot</button><button class="nav" data-page="fishing" data-icon="fish" title="Angeln" aria-label="Angeln">Angeln</button><button class="nav" data-page="raid" data-icon="combat" title="Raid" aria-label="Raid">Raid</button><button class="nav " data-page="combat" data-icon="combat" title="Combat" aria-label="Combat">Combat</button></nav><nav><button class="nav" data-page="settings" data-icon="settings" title="Einstellungen" aria-label="Einstellungen">Einstellungen</button></nav><div class="nav-label bottom-label">VERBINDUNG</div>
 <nav><button class="nav" data-page="setup" data-icon="link" title="Bridge einrichten" aria-label="Bridge einrichten">Bridge einrichten</button></nav><div class="sidebar-footer">
 <div class="bridge-led" id="side-state" hidden="">
 <span class="dot offline"></span>Bridge offline</div>
@@ -22,12 +22,16 @@
 <span class="version">v0.1.1 · BETA</span>
 </div></aside>
 <div class="shell">
-<header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumb">Übersicht</strong>
+<header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumb">Launcher</strong>
 </div>
 <div class="header-actions">
 <a id="global-selection" class="selection-link" href="#hooking">0 ausgewählt</a><span class="status-pill" id="connection-status"><span class="dot offline"></span>Offline</span><button class="icon-button" id="settings-button" aria-label="Einstellungen öffnen" data-icon="settings"></button><div class="avatar">O</div>
 </div></header><main>
-<section id="page-overview" class="page active"><div class="title-row"><div>
+<section id="page-launcher" class="page active"><div class="title-row"><div><h1>Launcher</h1><p>Starte deine Accounts. Alles Persönliche bleibt auf deinem Rechner.</p></div><span class="launcher-private">Lokal verschlüsselt</span></div>
+<article class="panel launcher-intro"><div><h2>Wiz Q, direkt in deinem Control Center.</h2><p>Konten verwalten, vorhandenes Wiz-Q-Profil übernehmen und mehrere Spielclients starten. Die Kontoansicht wird direkt von deiner lokalen Bridge geladen.</p><p id="launcher-status" role="status" aria-live="polite">Verbinde deine Bridge, um den lokalen Launcher zu öffnen.</p></div><div class="actions"><button class="button primary" id="launcher-connect" data-icon="play">Launcher verbinden</button><button class="button" id="launcher-window" data-icon="monitor">Eigenes Fenster</button><button class="button" id="launcher-clients" data-icon="scan">Zu Hooking</button></div></article>
+<iframe id="launcher-frame" class="launcher-frame" title="Lokaler Launcher – Konten bleiben auf diesem Rechner" referrerpolicy="no-referrer" allow="local-network-access; loopback-network" sandbox="allow-scripts allow-same-origin allow-forms allow-modals" hidden></iframe>
+<p class="muted small">Falls die Einbettung blockiert wird: „Eigenes Fenster“ verwenden und lokalen Netzwerkzugriff erlauben. Dort muss die Adresse <strong>https://localhost:18762</strong> lauten. Launcher-Daten werden nicht an die Website übertragen. <a href="https://github.com/xLordTime/wiz-q-launcher" target="_blank" rel="noopener noreferrer">Wiz Q Launcher · Credits & Quelle ↗</a></p></section>
+<section id="page-overview" class="page"><div class="title-row"><div>
 <h1>Übersicht</h1>
 <p class="subtitle">Deine laufende Sitzung auf einen Blick.</p>
 </div></div>
@@ -140,7 +144,7 @@
 <span class="eyebrow">WINDOWS · BETA 0.1.1</span><h2>Mythic Walker Bridge</h2>
 <p>Mit App-Icon, automatischer Kopplung, Updates und minimierbarem Widget. Python ist nicht erforderlich.</p>
 <div class="actions">
-<a class="button primary" href="https://github.com/xLordTime/MythicWalker/releases/download/v0.1.1-beta.14/MythicWalker.exe" data-icon="download">Windows-EXE herunterladen</a><a class="button" href="https://github.com/xLordTime/MythicWalker" target="_blank" rel="noopener">GitHub ↗</a><a class="text-button" href="https://github.com/xLordTime/MythicWalker/releases" target="_blank" rel="noopener">Alle Releases ↗</a>
+<a class="button primary" href="https://github.com/xLordTime/MythicWalker/releases/download/v0.1.1-beta.15/MythicWalker.exe" data-icon="download">Windows-EXE herunterladen</a><a class="button" href="https://github.com/xLordTime/MythicWalker" target="_blank" rel="noopener">GitHub ↗</a><a class="text-button" href="https://github.com/xLordTime/MythicWalker/releases" target="_blank" rel="noopener">Alle Releases ↗</a>
 </div>
 </div></article><article class="panel bridge-commands"><h2>Alternative · Python-Starter</h2>
 <p>Für den Start aus dem Quellcode. Starter entpacken, dann diese Befehle im Projektordner ausführen.</p>

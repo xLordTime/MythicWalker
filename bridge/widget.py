@@ -10,7 +10,7 @@ from settings import DEFAULTS, combo
 class StatusWidget:
     def __init__(self,version):
         self.version=version;self.events=queue.Queue();self.title='Bridge startet';self.detail='Bitte einen Moment …'
-        self.steps=[];self.browser=lambda:None;self.copy_pairing=lambda:None;self.stop=lambda:None;self.closing=False
+        self.steps=[];self.browser=lambda:None;self.launcher=lambda:None;self.copy_pairing=lambda:None;self.stop=lambda:None;self.closing=False
         self.config=dict(DEFAULTS['widget']);self.hidden=False;self.smoke_toggles=0;self.smoke_pairing=0
     def report(self,title,detail=''):
         self.events.put(('status',title,str(detail)[:220]))
@@ -40,6 +40,11 @@ class StatusWidget:
         user.LoadImageW.argtypes=[W.HINSTANCE,W.LPCWSTR,W.UINT,ctypes.c_int,ctypes.c_int,W.UINT];user.LoadImageW.restype=W.HANDLE
         user.DrawIconEx.argtypes=[W.HDC,ctypes.c_int,ctypes.c_int,W.HICON,ctypes.c_int,ctypes.c_int,W.UINT,W.HBRUSH,W.UINT];user.DrawIconEx.restype=W.BOOL
         user.DestroyIcon.argtypes=[W.HICON];user.DestroyIcon.restype=W.BOOL
+        user.LoadCursorW.argtypes=[W.HINSTANCE,ctypes.c_void_p];user.LoadCursorW.restype=W.HANDLE
+        user.SetCursor.argtypes=[W.HANDLE];user.SetCursor.restype=W.HANDLE
+        user.GetCursor.argtypes=[];user.GetCursor.restype=W.HANDLE
+        arrow=user.LoadCursorW(None,ctypes.c_void_p(32512))
+        if not arrow:raise ctypes.WinError(ctypes.get_last_error())
         icon_path=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'assets'/'mythicwalker.ico'
         app_icon=user.LoadImageW(None,str(icon_path),1,32,32,0x10)
         if not app_icon:raise ctypes.WinError(ctypes.get_last_error())
@@ -89,6 +94,8 @@ class StatusWidget:
                 return 0
             if msg==0x8001 and lp in (0x0202,0x0205):show('show');return 0
             if msg==0x0312 and wp==hotkey_id:show('toggle');return 0
+            if msg==0x0020 and (lp&0xffff)==1:
+                user.SetCursor(arrow);return 1
             if msg==0x000F:
                 paint=PAINT();hdc=user.BeginPaint(hwnd,ctypes.byref(paint));rect=W.RECT(0,0,360,250);user.FillRect(hdc,ctypes.byref(rect),bg)
                 gdi.SetBkMode(hdc,1);gdi.SelectObject(hdc,gdi.GetStockObject(17))
@@ -96,7 +103,8 @@ class StatusWidget:
                 text(hdc,'MYTHIC WALKER  ·  '+self.version,57,18,247,22,0xFFADBC)
                 text(hdc,'−',320,16,25,24,0xFFADBC)
                 text(hdc,self.title,20,50,320,28);text(hdc,self.detail,20,80,320,45,0xB0989B)
-                for i,step in enumerate(self.steps[-3:]):text(hdc,'✓  '+step,20,132+i*19,320,19,0xC5DC8D)
+                for i,step in enumerate(self.steps[-2:]):text(hdc,'✓  '+step,20,132+i*19,320,19,0xC5DC8D)
+                text(hdc,'Launcher lokal öffnen  ↗',20,182,320,20,0xFFADBC)
                 for left,label in [(20,'Dashboard öffnen'),(202,'Beenden')]:
                     rect=W.RECT(left,204,left+138,237);user.FillRect(hdc,ctypes.byref(rect),button);text(hdc,label,left+12,213,120,22)
                 user.EndPaint(hwnd,ctypes.byref(paint));return 0
@@ -108,6 +116,7 @@ class StatusWidget:
                     if kind=='configure':configure(title);continue
                     if kind=='visibility':show(title);continue
                     if kind=='smoke':
+                        if user.SendMessageW(hwnd,0x0020,0,1)!=1 or user.GetCursor()!=arrow:raise RuntimeError('Widget cursor is not the arrow cursor')
                         user.SendMessageW(hwnd,0x0205,0,(220<<16)|50)
                         if self.smoke_pairing!=1:raise RuntimeError('Dashboard right click did not call pairing copy')
                         user.SendMessageW(hwnd,0x0312,hotkey_id,0)
@@ -122,6 +131,7 @@ class StatusWidget:
             if msg==0x0202:
                 x,y=lp&0xffff,(lp>>16)&0xffff
                 if 314<=x<=348 and 10<=y<=43:show('hide');return 0
+                if 20<=x<=340 and 181<=y<=201:self.launcher();return 0
                 if 204<=y<=237:
                     if 20<=x<=158:self.browser()
                     elif 202<=x<=340:self.stop()
@@ -134,7 +144,7 @@ class StatusWidget:
             if msg==0x0002:user.PostQuitMessage(0);return 0
             return user.DefWindowProcW(hwnd,msg,wp,lp)
         instance=kernel.GetModuleHandleW(None);name='MythicWalkerStatus'
-        wc=WC(0,proc,0,0,instance,app_icon,None,bg,None,name)
+        wc=WC(0,proc,0,0,instance,app_icon,arrow,bg,None,name)
         if not user.RegisterClassW(ctypes.byref(wc)):raise ctypes.WinError(ctypes.get_last_error())
         work=W.RECT();user.SystemParametersInfoW(48,0,ctypes.byref(work),0)
         hwnd=user.CreateWindowExW(0x08000088,name,'Mythic Walker',0x80000000,work.right-378,work.bottom-268,360,250,None,None,instance,None)
