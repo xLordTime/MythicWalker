@@ -1,7 +1,7 @@
 'use strict';
 function createLauncher({state,command,toast,navigate}){
  const $=id=>document.getElementById(id);let mounted=false;
- const ready=()=>state.connected&&!state.demo&&!state.bridgeDemo&&state.launcherAvailable;
+ const ready=()=>state.connected&&!state.demo&&!state.bridgeDemo&&state.launcherAvailable&&state.launcherEnabled;
  const open=async separate=>{
   if(!ready()){toast(state.connected?'Bridge mit Launcher-Unterstützung aktualisieren.':'Zuerst die lokale Bridge verbinden.');return;}
   // Reserve the window during the user's click, before waiting for the bridge.
@@ -17,7 +17,7 @@ function createLauncher({state,command,toast,navigate}){
  };
  $('launcher-connect').onclick=()=>open(false);$('launcher-window').onclick=()=>open(true);$('launcher-clients').onclick=()=>navigate('hooking');
  return{render(){const ok=ready();$('launcher-connect').disabled=!ok;$('launcher-window').disabled=!ok;
-  if(!ok){if(mounted){$('launcher-frame').src='about:blank';$('launcher-frame').hidden=true;mounted=false;}$('launcher-status').textContent=state.demo||state.bridgeDemo?'Launcher benötigt die lokale Windows-Live-Bridge.':state.connected?'Bridge aktualisieren: Launcher ab Beta 15 verfügbar.':'Verbinde deine Bridge, um den lokalen Launcher zu öffnen.';}
+  if(!ok){if(mounted){$('launcher-frame').src='about:blank';$('launcher-frame').hidden=true;mounted=false;}$('launcher-status').textContent=!state.launcherEnabled?'Launcher ist in den Einstellungen ausgeschaltet.':state.demo||state.bridgeDemo?'Launcher benötigt die lokale Windows-Live-Bridge.':state.connected?'Bridge aktualisieren: Launcher ab Beta 15 verfügbar.':'Verbinde deine Bridge, um den lokalen Launcher zu öffnen.';}
   else if(!mounted)$('launcher-status').textContent='Bridge bereit. Launcher verbinden oder in einem eigenen lokalen Fenster öffnen.';
  }};
 }

@@ -16,13 +16,19 @@ LOCAL_ORIGIN='https://localhost:18762'
 class LauncherService:
     def __init__(self, vault=None, native=None):
         self.vault=vault or Vault();self.native=native or NativeLauncher()
-        self.available=False;self.ticket=None;self.ticket_until=0
+        self.enabled=False;self.available=False;self.ticket=None;self.ticket_until=0
         self.session=None;self.session_until=0
         self.lock=asyncio.Lock();self.cancel=threading.Event();self.job=None
         self.progress={'running':False,'message':'Bereit.','done':0,'total':0}
         self.processes=[]
 
+    async def set_enabled(self, enabled):
+        async with self.lock:
+            self.enabled=bool(enabled)
+            if not self.enabled:await self.revoke()
+
     def issue_ticket(self):
+        if not self.enabled:raise LauncherError('Launcher ist ausgeschaltet. In den Einstellungen aktivieren.')
         if not self.available:raise LauncherError('Lokaler Launcher nicht verfügbar. Bridge aktualisieren bzw. Port 18762 prüfen.')
         self.ticket=secrets.token_urlsafe(32);self.ticket_until=time.monotonic()+30
         hide_secret(self.ticket)
@@ -103,6 +109,7 @@ class LauncherService:
         action=request.match_info['action']
         async with self.lock:
             try:
+                if not self.enabled:raise web.HTTPForbidden(text='Launcher ist ausgeschaltet.')
                 args=await request.json()
                 if not isinstance(args,dict):raise LauncherError('Ungültige Anfrage.')
                 if action=='exchange':
@@ -167,7 +174,8 @@ def local_app(service, frame_origins, web_dir=None):
 
 
 def attach_launcher(app, bridge, tls):
-    service=LauncherService();bridge.launcher=service
+    service=LauncherService();service.enabled=bridge.settings.data['launcher_enabled'];bridge.launcher=service
+    if bridge.widget:bridge.widget.launcher_enabled=service.enabled
     async def lifetime(_):
         runner=web.AppRunner(local_app(service,bridge.origins),access_log=None)
         await runner.setup()

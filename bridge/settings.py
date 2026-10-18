@@ -7,7 +7,7 @@ from pathlib import Path
 
 BINDINGS={'scan':'Ctrl+Alt+S','hook':'Ctrl+Alt+H','unhook':'Ctrl+Alt+U','interact':'X','sync':'F8','quest_tp':'F7','quest_all':'F6','speed_toggle':'F5','combat_toggle':'9','dialogue_toggle':'F4','questing_toggle':'F3','sigil_toggle':'F2','freecam':'F1','camera_tp':'Shift+F1','run_script':'Ctrl+Alt+R','stop':'Ctrl+Alt+F8','forward':'Ctrl+Alt+W'}
 ACTIONS=tuple(BINDINGS)
-DEFAULTS={'global_hotkeys':True,'poll_seconds':2,'key_seconds':0.2,'bindings':BINDINGS,
+DEFAULTS={'launcher_enabled':False,'global_hotkeys':True,'poll_seconds':2,'key_seconds':0.2,'bindings':BINDINGS,
  'widget':{'hotkey':'F10','start_hidden':False,'topmost':True},
  'movement':{'scope':'all','speed_percent':100,'navmap_target':'auto','navmap_timeout':20,'freecam_scope':'leader'},
  'automation':{'interval':1,'max_minutes':15,'combat_rules':'any<aoe>@enemy\npass','combat_pass':True,'quest_accept':True,'quest_forward':False,'quest_distance':150,'sigil_rejoin':True,'sigil_confirm':True,'sigil_cooldown':5}}
@@ -44,6 +44,7 @@ def validate(data):
     if not isinstance(data,dict) or set(data)!=set(DEFAULTS):raise ValueError('Ungültiges Settings-Format.')
     result=copy.deepcopy(data)
     if type(data['global_hotkeys']) is not bool:raise ValueError('Global-Schalter muss boolesch sein.')
+    if type(data['launcher_enabled']) is not bool:raise ValueError('Launcher-Schalter muss boolesch sein.')
     number(data['poll_seconds'],.5,10,'Status-Intervall');number(data['key_seconds'],.01,5,'Tastendauer')
     if not isinstance(data['bindings'],dict) or set(data['bindings'])!=set(ACTIONS):raise ValueError('Ungültige Shortcut-Aktionen.')
     result['bindings']={a:combo(data['bindings'][a]) for a in ACTIONS};used=[v for v in result['bindings'].values() if v]

@@ -77,7 +77,7 @@ class VaultTests(unittest.TestCase):
 class LocalApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.vault=Vault(self.tmp.name,FixtureCipher())
-        self.service=LauncherService(self.vault);self.service.available=True
+        self.service=LauncherService(self.vault);self.service.available=True;self.service.enabled=True
         self.client=TestClient(TestServer(local_app(self.service,{'https://dashboard.invalid'})))
         await self.client.start_server();self.session=None
     async def asyncTearDown(self):
@@ -88,6 +88,16 @@ class LocalApiTests(unittest.IsolatedAsyncioTestCase):
         ticket=self.service.issue_ticket()['url'].split('#ticket=')[1]
         r=await self.post('exchange',{'ticket':ticket});self.assertEqual(r.status,200)
         self.session=(await r.json())['session'];return ticket
+    async def test_disabled_by_default_and_revokes_existing_session(self):
+        self.assertFalse(LauncherService(self.vault).enabled)
+        await self.connect();await self.post('unlock')
+        await self.post('save',{'name':'n','username':'u','password':'p','region':'de'})
+        await self.service.set_enabled(False)
+        self.assertIsNone(self.service.ticket);self.assertIsNone(self.service.session);self.assertIsNone(self.vault.rows)
+        with self.assertRaises(LauncherError):self.service.issue_ticket()
+        self.assertEqual((await self.post('state')).status,403)
+        await self.service.set_enabled(True);await self.connect();await self.post('unlock')
+        self.assertEqual(len(self.vault.rows),1)
     async def test_ticket_one_time_and_short_lived(self):
         ticket=await self.connect();self.assertNotEqual(ticket,self.session)
         self.assertEqual((await self.post('exchange',{'ticket':ticket})).status,401)

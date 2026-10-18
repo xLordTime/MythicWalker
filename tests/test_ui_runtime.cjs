@@ -32,10 +32,13 @@ assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='app.init.ready
 function el(id){return elements.get(id);}
 (async()=>{
  if(process.env.TEST_PAIR==='1'){
-  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#launcher');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));console.log('Browser auto-pairing, fragment cleanup and token redaction passed.');process.exit(0);
+  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));console.log('Browser auto-pairing, fragment cleanup and token redaction passed.');process.exit(0);
  }
+ assert.equal(el('setting-launcher_enabled').checked,false);assert.equal(nav.find(n=>n.dataset.page==='launcher').hidden,true);
+ await nav.find(n=>n.dataset.page==='launcher').click();assert.equal(el('breadcrumb').textContent,'Übersicht');
  await el('settings-button').click();assert.equal(el('breadcrumb').textContent,'Einstellungen');
- el('setting-key_seconds').value='0.6';el('setting-accent').value='teal';await el('save-settings').click();assert.equal(document.body.dataset.accent,'teal');assert.equal(el('key-seconds').value,.6);
+ el('setting-launcher_enabled').checked=true;el('setting-key_seconds').value='0.6';el('setting-accent').value='teal';await el('save-settings').click();assert.equal(document.body.dataset.accent,'teal');assert.equal(el('key-seconds').value,.6);
+ assert.equal(nav.find(n=>n.dataset.page==='launcher').hidden,false);await nav.find(n=>n.dataset.page==='launcher').click();assert.equal(el('breadcrumb').textContent,'Launcher');
  el('demo-button').click();assert.equal(el('metric-clients').textContent,3);
  async function shortcut(key){await listeners.keydown({key,ctrlKey:true,altKey:true,shiftKey:false,metaKey:false,repeat:false,target:new Element('target'),preventDefault(){},stopImmediatePropagation(){}});await new Promise(r=>setTimeout(r,5));}
  await shortcut('H');assert.equal(el('metric-hooks').textContent,1);
@@ -47,7 +50,7 @@ function el(id){return elements.get(id);}
  el('block-source').value='call missing';await el('save-block').click();assert.match(el('toast').textContent,/Unbekannter Block/);assert.equal(JSON.parse(local.get('mythic-blocks-v1'))[0].source,'mass sendkey X, 0.1');
  await new Promise(r=>setTimeout(r,0));assert.match(el('bot-catalog-status').textContent,/12 Bots/);assert.match(el('bot-catalog-status').textContent,/12 aktiv/);
  await el('combat-read').click();assert.match(el('combat-cards').innerHTML,/LifeBlade/);
- for(const [page,label] of [['launcher','Launcher'],['hooking','Hooking'],['combat','Combat'],['scripts','Skripte / Bot'],['tools','Tools'],['fishing','Angeln'],['raid','Raid']]){await nav.find(n=>n.dataset.page===page).click();assert.equal(el('breadcrumb').textContent,label);}
+ for(const [page,label] of [['quests','Questen'],['hooking','Hooking'],['combat','Combat'],['scripts','Skripte / Bot'],['tools','Tools'],['fishing','Angeln'],['raid','Raid']]){await nav.find(n=>n.dataset.page===page).click();assert.equal(el('breadcrumb').textContent,label);}
  assert.equal(el('fish-start').disabled,true,'Fishing is live-only in demo');
  await shortcut('U');assert.equal(el('metric-hooks').textContent,0);
  // Persist the saved configuration after exercising shortcuts.

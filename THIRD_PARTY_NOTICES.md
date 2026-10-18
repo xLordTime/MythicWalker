@@ -56,3 +56,7 @@ The unchanged pinned DE-WizWalker is adapted at the existing client boundary: `m
 Source: https://github.com/xLordTime/wiz-q-launcher/tree/bf3759d89bdd4682f09df9999792d8c930c5b7a7
 
 `bridge/launcher_vault.py` adapts account-format compatibility from `security/crypto.py`; `launcher_native.py` adapts the launch arguments, region metadata, discovery and login sequence from `services/launcher.py` and `core/config.py`. The implementation is separated from the original GUI and external integrations. Local profile layout follows `app/main.py`. Author/project: xLordTime / Wiz Q Launcher. Original MIT notice: `bridge/launcher_web/WIZ_Q_LICENSE.txt`. No original account, configuration or log files are bundled.
+
+## SpiralTracker (design reference only)
+
+https://spiraltracker.com/ — UI/development credited by its credits page to HiitSayZ. Quest-overview concept used as inspiration. No verified open-source license was located; no source code, artwork, or complete quest-guide data from this site is redistributed. `bridge/quest_tracker.py` and `dist/quests.js` are independent implementations using local game data through the already credited DE-WizWalker.

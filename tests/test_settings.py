@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import AsyncMock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'bridge'))
-from settings import Settings, DEFAULTS, validate, combo
+from settings import Settings, DEFAULTS, validate, combo, migrate
 from server import Bridge
 from adapter import DemoAdapter
 from hotkeys import key_code
@@ -23,6 +23,11 @@ class SettingsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):settings.save(invalid)
                 self.assertEqual(path.read_bytes(),before)
             self.assertEqual(Settings(path).data['bindings']['hook'],'Alt+H')
+    def test_launcher_defaults_off_and_migrates_old_settings(self):
+        old=copy.deepcopy(DEFAULTS);old.pop('launcher_enabled')
+        self.assertFalse(migrate(old)['launcher_enabled'])
+        bad=copy.deepcopy(DEFAULTS);bad['launcher_enabled']='false'
+        with self.assertRaises(ValueError):validate(bad)
     def test_binding_conflicts_and_reserved_keys(self):
         self.assertEqual(combo(' shift + ctrl + h '),'Ctrl+Shift+H')
         for value in ['H','Ctrl+F12','Win+H','Ctrl+Ctrl+H','Ctrl+Escape']:

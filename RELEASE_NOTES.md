@@ -1,3 +1,16 @@
+## v0.1.1-beta.16 — Quest-Tracker & optionaler Launcher
+
+- Neuer Tab **Questen** mit eigener Client-Auswahl, schreibgeschütztem Live-Journal, Suche, Hauptquest-/Weltfiltern und automatischer Hervorhebung anhand von Quest- und Teilziel-IDs.
+- Lokale DE-Questtexte bevorzugt; sichere Anzeige von Sprachschlüsseln/IDs, wenn Metadaten nicht verfügbar sind. Keine neuen Tracker-Hooks oder Bewegungseingriffe.
+- Separates Quest-Overlay. Alte Markierungen werden bei Zonen-/Accountwechsel, Unhook, Verbindungsverlust und Lesefehlern verworfen. Keine überlappenden Polls.
+- Eigene Questpläne mit Reihenfolge und Rückkehrphasen lokal hinzufügen, bearbeiten, importieren und exportieren. Live-Journal ist keine vollständige Welt-Questreihe.
+- **Auto Quest** als ausdrücklich gekennzeichneter Planungsbereich; gespeicherte Optionen führen noch keine Automatik aus.
+- **Launcher aktivieren** in Settings, Standard **Aus**. Deaktivieren sperrt die lokale API, widerruft Tickets/Sitzungen, stoppt die Startwarteschlange und blendet den Tab aus. Konto-Dateien und bereits gestartete Spiele bleiben erhalten.
+- Übersicht ist beim ausgeschalteten Launcher wieder die Startseite; bei aktivem Launcher bleibt dieser der erste Tab.
+- Credits für SpiralTracker als UI-Inspiration. Eigenständiger Tracker, kein unbestätigter Quellcode-/Guide-Import.
+
+Validierung: automatisierte Bridge-/Frontend-Tests, Windows-Build und EXE-Smoke-Test im Release-Workflow. Live-Quests und Darstellung im echten Spiel müssen unter Windows geprüft werden; kein Wizard101-Client in der Entwicklungsumgebung.
+
 ## v0.1.1-beta.15 — Lokaler Wiz-Q-Launcher
 
 - Launcher als erster Tab und neue Startseite; eigenständige lokale Kontoansicht auf Loopback-Port 18762 mit Fenster-Fallback.

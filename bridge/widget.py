@@ -11,7 +11,7 @@ class StatusWidget:
     def __init__(self,version):
         self.version=version;self.events=queue.Queue();self.title='Bridge startet';self.detail='Bitte einen Moment …'
         self.steps=[];self.browser=lambda:None;self.launcher=lambda:None;self.copy_pairing=lambda:None;self.stop=lambda:None;self.closing=False
-        self.config=dict(DEFAULTS['widget']);self.hidden=False;self.smoke_toggles=0;self.smoke_pairing=0
+        self.launcher_enabled=False;self.config=dict(DEFAULTS['widget']);self.hidden=False;self.smoke_toggles=0;self.smoke_pairing=0
     def report(self,title,detail=''):
         self.events.put(('status',title,str(detail)[:220]))
     def finish(self):self.events.put(('finish','',''))
@@ -104,7 +104,7 @@ class StatusWidget:
                 text(hdc,'−',320,16,25,24,0xFFADBC)
                 text(hdc,self.title,20,50,320,28);text(hdc,self.detail,20,80,320,45,0xB0989B)
                 for i,step in enumerate(self.steps[-2:]):text(hdc,'✓  '+step,20,132+i*19,320,19,0xC5DC8D)
-                text(hdc,'Launcher lokal öffnen  ↗',20,182,320,20,0xFFADBC)
+                text(hdc,'Launcher lokal öffnen  ↗' if self.launcher_enabled else 'Launcher aus · In Settings aktivieren',20,182,320,20,0xFFADBC)
                 for left,label in [(20,'Dashboard öffnen'),(202,'Beenden')]:
                     rect=W.RECT(left,204,left+138,237);user.FillRect(hdc,ctypes.byref(rect),button);text(hdc,label,left+12,213,120,22)
                 user.EndPaint(hwnd,ctypes.byref(paint));return 0

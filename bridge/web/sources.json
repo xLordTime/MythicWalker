@@ -66,6 +66,11 @@
       "name": "Wiz Q Launcher · xLordTime",
       "url": "https://github.com/xLordTime/wiz-q-launcher",
       "role": "Lokaler Launcher, Kontodatenformat und Regionsstart · MIT"
+    },
+    {
+      "name": "SpiralTracker · HiitSayZ",
+      "url": "https://spiraltracker.com/credits",
+      "role": "Inspiration für die Questübersicht. Eigenständige Umsetzung; kein Website-Code oder vollständiger Guide übernommen."
     }
   ]
 }

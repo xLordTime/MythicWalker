@@ -99,6 +99,8 @@ class Bridge:
         self.fishing = Fishing(self)
         self.raids = Raids(self)
         self.launcher = None
+        from quest_tracker import QuestReader
+        self.quest_reader = QuestReader()
 
     async def set_script_playstyle(self,source,ids):
         rows=parse_style(source)
@@ -307,6 +309,14 @@ class Bridge:
         if op == 'launcher_ticket':
             if not self.launcher or self.demo:raise ValueError('Launcher benötigt eine aktuelle Windows-Live-Bridge.')
             return self.launcher.issue_ticket()
+        if op == 'quest_status':
+            if self.demo:raise ValueError('Quest-Tracking benötigt die Windows-Live-Bridge.')
+            if self.cleanup_error:raise ValueError('Bridge nach Unhook-Fehler neu starten.')
+            if not isinstance(args.get('ids'),list) or len(args['ids'])!=1:raise ValueError('Genau einen Quest-Client auswählen.')
+            async with asyncio.timeout(8):
+                async with self.lock:
+                    client=self.adapter.selected(args['ids'])[0]
+                    return await self.quest_reader.read(client)
         if op == 'get_diagnostics': return bundle()
         if op == 'script_capabilities':
             from expert import SUPPORTED_COMMANDS, UNSUPPORTED
@@ -322,12 +332,12 @@ class Bridge:
         if self.cleanup_error:
             raise ValueError('Bridge nach Unhook-Fehler neu starten: ' + self.cleanup_error)
         if op=='raid_stop':return await self.raids.stop()
-        if self.raids.running and op not in {'stop','unhook','scan','snapshot','get_settings','pause_hotkeys','shortcut_context','widget'}:
+        if self.raids.running and op not in {'stop','unhook','scan','snapshot','get_settings','set_settings','pause_hotkeys','shortcut_context','widget'}:
             raise ValueError('Raid-Aktion zuerst stoppen.')
         if op=='raid_start':return await self.raids.start(args.get('ids'),args.get('raid'),args.get('action'),args.get('target'))
         if op=='fishing_start':return await self.fishing.start(args.get('ids'),args.get('settings',{}))
         if op=='fishing_stop':return await self.fishing.stop(timeout=10)
-        if self.fishing.running and op not in {'stop','unhook','scan','snapshot','get_settings','pause_hotkeys','shortcut_context','widget'}:
+        if self.fishing.running and op not in {'stop','unhook','scan','snapshot','get_settings','set_settings','pause_hotkeys','shortcut_context','widget'}:
             raise ValueError('Fisch-Bot zuerst stoppen.')
         if op=='movement':return await self.movement(args.get('action'),args)
         if op=='automation':return await self.automations.toggle(args.get('mode'),args.get('ids'),args.get('enabled'))
@@ -341,7 +351,10 @@ class Bridge:
             return {'settings':self.settings.data, 'hotkeys':self.hotkeys.status}
         if op == 'set_settings':
             self.settings.save(args.get('settings'))
-            if self.widget:self.widget.configure(self.settings.data['widget'])
+            if self.launcher:await self.launcher.set_enabled(self.settings.data['launcher_enabled'])
+            if self.widget:
+                self.widget.configure(self.settings.data['widget'])
+                self.widget.launcher_enabled=self.settings.data['launcher_enabled']
             return {'settings':self.settings.data, 'hotkeys':await self.configure_hotkeys()}
         if op == 'pause_hotkeys':
             if type(args.get('paused')) is not bool: raise ValueError('paused muss boolesch sein.')
@@ -464,7 +477,7 @@ class Bridge:
                 self.session_generation += 1
                 self.hotkeys_paused = False
                 print('Dashboard gekoppelt (' + ('DEMO' if self.demo else 'LIVE') + ').', flush=True)
-                await self.send({'type':'ready','capabilities':['raid']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
+                await self.send({'type':'ready','capabilities':['raid','quest_tracking']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
                 await self.configure_hotkeys()
                 async with self.lock:
                     try:
@@ -493,7 +506,7 @@ class Bridge:
                                 await self.log(error, 'error')
                         if data.get('op') in {'hook','unhook','scan'}:await self.configure_hotkeys()
                         await self.send({'type':'result','id':data['id'],'ok':True,'data':result})
-                        if data.get('op') not in {'get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics','validate_script','validate_playstyle','script_capabilities','validate_block_library'}:
+                        if data.get('op') not in {'quest_status','get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics','validate_script','validate_playstyle','script_capabilities','validate_block_library'}:
                             async with self.lock: await self.state()
                     except Exception as exc:
                         logger.exception('command.failed op=%s', data.get('op') if isinstance(data,dict) else 'invalid')
@@ -569,7 +582,7 @@ def create_app(bridge, web_dir):
     app.router.add_get('/health',health)
     app.router.add_get('/',index)
     # Serve only the explicit frontend assets, never bridge source/certificates.
-    for filename in ['app.js','launcher.js','accounts.js','raids.js','raid-catalog.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
+    for filename in ['app.js','quests.js','launcher.js','accounts.js','raids.js','raid-catalog.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
     # Only public, packaged icon assets; never expose other bridge directories.
