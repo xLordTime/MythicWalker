@@ -11,6 +11,7 @@ on:
     tags: ['v*']
     paths:
       - 'bridge/**'
+      - 'tests/**'
       - 'scripts/release_manifest.py'
       - '.github/workflows/windows-release.yml'
 permissions:

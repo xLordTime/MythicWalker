@@ -30,11 +30,12 @@ for(const file of scriptFiles)vm.runInContext(fs.readFileSync('dist/'+file,'utf8
 assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='app.init.ready'));
 
 function el(id){return elements.get(id);}
+async function waitFor(check,message){const deadline=Date.now()+4000;while(!check()){assert(Date.now()<deadline,message);await new Promise(r=>setTimeout(r,5));}}
 (async()=>{
  if(process.env.TEST_PAIR==='1'){
-  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));
+  await waitFor(()=>el('pairing-result').textContent.startsWith('Verbunden'),'Pairing did not complete');assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));
   if(process.env.TEST_SOUND_VERSION){
-   const version=Number(process.env.TEST_SOUND_VERSION);await nav.find(n=>n.dataset.page==='sound').click();await new Promise(r=>setTimeout(r,30));
+   const version=Number(process.env.TEST_SOUND_VERSION);await nav.find(n=>n.dataset.page==='sound').click();await waitFor(()=>!el('sound-configure').disabled&&el('sound-archive').innerHTML.includes('Sound.wad'),'Sound installation initialization did not complete');
    assert(!el('sound-path').disabled);assert(!el('sound-configure').disabled);assert(!el('sound-archive').disabled);
    assert.equal(el('sound-browse').disabled,version<19);assert.equal(el('sound-search-all').disabled,version<18);
    assert(el('sound-archive').innerHTML.includes('Sound.wad'));
