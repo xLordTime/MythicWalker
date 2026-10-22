@@ -36,7 +36,7 @@ def wad(path,files,version=2,compressed=True):
 
 class SoundFileTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name);self.game=self.root/'game'
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve();self.game=self.root/'game'
         (self.game/'Bin').mkdir(parents=True);(self.game/'Bin'/'WizardGraphicalClient.exe').write_bytes(b'test')
         (self.game/'Data'/'GameData').mkdir(parents=True)
         self.path=self.game/'Data'/'GameData'/'Sound-WorldData.wad';self.first=wav();self.second=wav(200)
@@ -50,6 +50,11 @@ class SoundFileTests(unittest.TestCase):
         rows=self.store.files(self.path.name)['files'];self.assertEqual(rows[0]['name'],'Sounds/player_hurt.wav')
         self.assertTrue(rows[0]['candidate']);self.assertEqual(len(rows),2)
         self.assertEqual(base64.b64decode(self.store.inspect(self.path.name,rows[0]['name'])['data']),self.first)
+    def test_configuration_roundtrips_non_ascii_installation_paths(self):
+        moved=self.root/'Spiel-Ä例';self.game.rename(moved);self.store.configure(str(moved))
+        reopened=SoundStore(self.root/'user',lambda:None)
+        self.assertEqual(reopened.game,moved)
+        self.assertEqual(reopened.archives()['archives'][0]['id'],self.path.name)
     def test_single_sound_replace_preserves_all_other_data_and_restores_exactly(self):
         self.change();index=WadIndex(self.path)
         self.assertEqual(index.read('Sounds/player_hurt.wav'),wav(300));self.assertEqual(index.read('Sounds/other.wav'),self.second)

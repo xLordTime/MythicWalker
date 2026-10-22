@@ -157,7 +157,7 @@ class SoundStore:
         self.root=Path(root);self.guard=guard;self.game=None
         self.config=self.root/'settings.json'
         if self.config.exists():
-            try:self.game=installation(json.loads(self.config.read_text())['installation'])
+            try:self.game=installation(json.loads(self.config.read_text(encoding='utf-8'))['installation'])
             except (ValueError,KeyError,OSError):pass
 
     def configure(self,path):
@@ -181,7 +181,7 @@ class SoundStore:
         return p
 
     def folder(self,path):
-        key=hashlib.sha256(str(path).casefold().encode()).hexdigest()
+        key=hashlib.sha256(str(Path(path).resolve()).casefold().encode()).hexdigest()
         return self.root/'backups'/key
 
     def state(self,path,check=False):
@@ -250,6 +250,8 @@ class SoundStore:
         fd,tempname=tempfile.mkstemp(prefix='.mythic-sound-',suffix='.tmp',dir=path.parent);os.close(fd);tmp=Path(tempname)
         try:
             shutil.copy2(backup if restore and not changes else path,tmp)
+            if restore and not changes:
+                with tmp.open('r+b') as f:os.fsync(f.fileno())
             if not (restore and not changes):
                 with tmp.open('r+b') as f:
                     if restore:raw=original_index.entries[name]['raw']

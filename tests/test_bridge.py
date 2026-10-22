@@ -111,7 +111,7 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_packaged_scripts_health_and_authenticated_diagnostics(self):
         from version import RELEASE_TAG
-        html = (Path(__file__).resolve().parents[1]/'dist/index.html').read_text()
+        html = (Path(__file__).resolve().parents[1]/'dist/index.html').read_text(encoding='utf-8')
         import re
         for filename in re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', html):
             async with self.session.get(self.base+'/'+filename,ssl=False) as response:
