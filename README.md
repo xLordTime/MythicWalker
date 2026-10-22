@@ -1,4 +1,12 @@
-## Sound-Zentrale · Beta 17
+## Sound-Zentrale · Beta 18
+
+**Alle Archive durchsuchen** sucht einen Dateinamen über die gesamte ausgewählte Installation. Ohne Suchtext werden mögliche Trefferlaute anhand ihrer Namen gesucht. Die Suche läuft als lokaler Hintergrundauftrag und verändert keine Spieldateien. Die ersten 120 Treffer werden angezeigt; bei mehr Treffern den Suchtext eingrenzen. Nicht lesbare Archive werden gezählt. Ein Treffername bestätigt noch nicht den zugehörigen Spieleffekt.
+
+**Meine Soundänderungen** lädt die gespeicherten Zuordnungen der Installation von der Bridge, auch nach Browser- oder Bridge-Neustart. Ein Eintrag öffnet direkt das zugehörige Archiv und den Sound. Die Liste zeigt den zuletzt gespeicherten Stand, keine erneute vollständige Integritätsprüfung; Spielupdates werden weiterhin spätestens vor dem Schreiben erkannt und sperren ein Überschreiben mit einer alten Sicherung.
+
+Bei bereits geänderten Sounds lassen sich jetzt **Original aus deiner Sicherung** und **Aktueller Sound im Archiv** getrennt vorhören. Für die Prüfung vor dem Schreiben bleibt der Hash des aktuellen Dateistands maßgeblich. Ergebnisse alter Verbindungen werden verworfen; Statusabfragen und Bedienaktionen überlappen nicht mehr.
+
+### Grundlagen aus Beta 17
 
 Der neue Tab **Sound** verwaltet kurze Effekte einzeln in lokalen KIWAD-Archiven. Die mitgelieferte Aufnahme „Schaden bekommen“ ist als WAV (16-Bit-PCM) und Ogg-Vorbis vorbereitet. Es gibt keine bestätigte automatische Zuordnung zum DE-Trefferlaut: Installation erkennen, Sound-Archiv auswählen, nach `hurt`, `pain`, `damage`, `hit` oder `grunt` suchen und das Original vorhören. Danach die Aufnahme oder eine eigene Datei zuweisen.
 

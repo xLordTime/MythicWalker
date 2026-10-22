@@ -55,6 +55,31 @@ class SoundFileTests(unittest.TestCase):
         reopened=SoundStore(self.root/'user',lambda:None)
         self.assertEqual(reopened.game,moved)
         self.assertEqual(reopened.archives()['archives'][0]['id'],self.path.name)
+    def test_original_preview_and_change_overview_after_replacement(self):
+        self.change();preview=self.store.inspect(self.path.name,'Sounds/player_hurt.wav')
+        self.assertEqual(base64.b64decode(preview['data']),wav(300))
+        self.assertEqual(base64.b64decode(preview['baseline']['data']),self.first)
+        self.assertEqual(preview['sha256'],hashlib.sha256(wav(300)).hexdigest())
+        changes=self.store.changes()['changes']
+        self.assertEqual(len(changes),1);self.assertEqual(changes[0]['archive'],self.path.name)
+        self.assertEqual(changes[0]['label'],'Schaden bekommen')
+        self.change(restore=True);self.assertEqual(self.store.changes()['changes'],[])
+    def test_search_all_archives_is_read_only_and_keeps_archive_identity(self):
+        second=self.path.with_name('Sound-Another.wad')
+        wad(second,{'Sounds/player_hurt.wav':wav(500),'Sounds/music.wav':self.first})
+        second.with_name('Unknown.wad').write_bytes(b'unsupported')
+        before={p.name:digest(p) for p in self.path.parent.glob('*.wad')}
+        result=self.store.search();self.assertEqual(result['total'],2);self.assertEqual(result['failed'],1)
+        self.assertEqual({r['archive'] for r in result['files']},{self.path.name,second.name})
+        self.assertEqual(self.store.search('music')['total'],1)
+        self.assertEqual(self.store.search('DOES NOT EXIST')['files'],[])
+        self.assertFalse((self.store.root/'backups').exists())
+        self.assertEqual(before,{p.name:digest(p) for p in self.path.parent.glob('*.wad')})
+    def test_global_search_bounds_and_limits(self):
+        wad(self.path,{f'Sounds/hurt_{i}.wav':self.first for i in range(130)})
+        result=self.store.search();self.assertEqual(len(result['files']),120)
+        self.assertEqual(result['total'],130);self.assertTrue(result['limited'])
+        with self.assertRaises(SoundError):self.store.search('x'*151)
     def test_single_sound_replace_preserves_all_other_data_and_restores_exactly(self):
         self.change();index=WadIndex(self.path)
         self.assertEqual(index.read('Sounds/player_hurt.wav'),wav(300));self.assertEqual(index.read('Sounds/other.wav'),self.second)
@@ -139,6 +164,16 @@ class SoundFileTests(unittest.TestCase):
         self.change();self.change(restore=True);self.assertEqual(self.path.read_bytes(),self.baseline)
 
 class SoundJobTests(unittest.IsolatedAsyncioTestCase):
+    async def test_search_job_does_not_require_game_closed_and_reports_kind(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def deny():raise SoundError('Game is open')
+            service=Sounds(SimpleNamespace(demo=False,launcher=None),tmp,deny)
+            service.store.search=lambda query,progress:{'files':[],'total':0,'archives':3,'query':query}
+            response=await service.dispatch('sound_search',{'query':'hurt'})
+            self.assertTrue(response['started']);await service.close()
+            status=await service.dispatch('sound_status',{})
+            self.assertFalse(status['running']);self.assertEqual(status['kind'],'search')
+            self.assertEqual(status['result']['query'],'hurt')
     @unittest.skipUnless(sys.platform=='win32','Windows process enumeration')
     async def test_native_process_enumeration_on_windows(self):
         require_game_closed()

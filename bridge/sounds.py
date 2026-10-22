@@ -56,26 +56,36 @@ class Sounds:
                 return {'paths':await asyncio.to_thread(installations)}
             if op=='sound_config':return await asyncio.to_thread(self.store.configure,args.get('path'))
             if op=='sound_archives':return await asyncio.to_thread(self.store.archives)
+            if op=='sound_changes':return await asyncio.to_thread(self.store.changes)
             if op=='sound_files':return await asyncio.to_thread(self.store.files,args.get('archive'),args.get('query',''),args.get('offset',0))
             if op=='sound_inspect':return await asyncio.to_thread(self.store.inspect,args.get('archive'),args.get('name'))
-            if op not in ('sound_apply','sound_restore'):raise SoundError('Unbekannter Sound-Befehl.')
-            if self.bridge.launcher and self.bridge.launcher.progress['running']:raise SoundError('Launcher-Startvorgang zuerst stoppen.')
+            if op not in ('sound_apply','sound_restore','sound_search'):raise SoundError('Unbekannter Sound-Befehl.')
+            search=op=='sound_search'
+            if not search and self.bridge.launcher and self.bridge.launcher.progress['running']:raise SoundError('Launcher-Startvorgang zuerst stoppen.')
             restore=op=='sound_restore';data=b''
-            if not restore:
+            if not restore and not search:
                 raw=args.get('data')
                 if not isinstance(raw,str) or len(raw)>4*MAX_AUDIO//3+4:raise SoundError('Sound zu groß (3 MB).')
                 try:data=base64.b64decode(raw,validate=True)
                 except Exception as exc:raise SoundError('Sound-Übertragung ungültig.') from exc
             expected=args.get('expected')
-            if not isinstance(expected,str) or len(expected)!=64:raise SoundError('Zuerst Original-Sound prüfen.')
-            self.store.guard();self.seq+=1
-            self.status={'running':True,'message':'Dateioperation wird vorbereitet …','id':self.seq,'result':None,'error':None}
+            if not search and (not isinstance(expected,str) or len(expected)!=64):raise SoundError('Zuerst Original-Sound prüfen.')
+            query=args.get('query','')
+            if search and (not isinstance(query,str) or len(query)>150):raise SoundError('Suche ungültig.')
+            if not search:self.store.guard()
+            self.seq+=1
+            self.status={'running':True,'message':'Sound-Suche wird vorbereitet …' if search else 'Dateioperation wird vorbereitet …','kind':'search' if search else 'restore' if restore else 'apply','id':self.seq,'result':None,'error':None}
             async def run():
                 try:
-                    result=await asyncio.to_thread(self.store.replace,args.get('archive'),args.get('name'),data,expected,args.get('label',''),restore,self.progress)
-                    self.status={**self.status,'running':False,'message':'Original wiederhergestellt.' if restore else 'Sound ersetzt. Spiel jetzt neu starten.','result':result}
+                    if search:
+                        result=await asyncio.to_thread(self.store.search,query,self.progress)
+                        message=f"{result['total']} Treffer in {result['archives']} Archiven."
+                    else:
+                        result=await asyncio.to_thread(self.store.replace,args.get('archive'),args.get('name'),data,expected,args.get('label',''),restore,self.progress)
+                        message='Original wiederhergestellt.' if restore else 'Sound ersetzt. Spiel jetzt neu starten.'
+                    self.status={**self.status,'running':False,'message':message,'result':result}
                 except Exception as exc:
-                    message=str(exc) if isinstance(exc,SoundError) else 'Dateioperation fehlgeschlagen. Speicherplatz, Schreibrechte und Sicherungsjournal prüfen.'
+                    message=str(exc) if isinstance(exc,SoundError) else 'Sound-Suche fehlgeschlagen. Installation und Leserechte prüfen.' if search else 'Dateioperation fehlgeschlagen. Speicherplatz, Schreibrechte und Sicherungsjournal prüfen.'
                     self.status={**self.status,'running':False,'message':message,'error':message}
             self.job=asyncio.create_task(run())
             return {'started':True,'id':self.seq}

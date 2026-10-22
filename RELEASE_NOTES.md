@@ -1,3 +1,13 @@
+## v0.1.1-beta.18 — Sound-Suche und Änderungsübersicht
+
+- Suche über alle lokalen WAD-Archive, als Hintergrundauftrag mit Fortschritt. Ohne Suchtext werden mögliche Trefferlaute gesucht; keine automatische Behauptung einer bestätigten Spieleffekt-Zuordnung. Beschädigte/unbekannte Archive werden übersprungen und gezählt.
+- **Meine Soundänderungen:** gespeicherte Zuordnungen über Archivgrenzen hinweg anzeigen und direkt öffnen. Die Übersicht kommt von der lokalen Bridge und bleibt nach Neustarts verfügbar. Bestehende Beta-17-Sicherungsjournale werden weiterverwendet.
+- Getrennte Vorschau des gesicherten Originals und des aktuellen, bereits geänderten Sounds. Anwenden und Wiederherstellen prüfen weiterhin den aktuellen Datei-Hash.
+- Verspätete Antworten und Audio-Konvertierungen aus getrennten Sitzungen werden verworfen. Neue Sitzungen werden durch alte Statusantworten nicht mehr gesperrt oder überschrieben. Keine überlappenden Status-/Bedienanfragen.
+- Bestehender Schutz nach externen Spielupdates bleibt erhalten; keine automatische Wiederherstellung alter Archive über einen neueren Spielstand.
+
+Validierung: automatisierte Sound-/Bridge-/Frontend-Tests, Windows-Build und EXE-Smoke-Test im Release-Workflow. Der konkrete DE-Trefferlaut und die Wiedergabe im Spiel benötigen weiterhin Prüfung an der Installation des Benutzers.
+
 ## v0.1.1-beta.17 — Lokale Sound-Zentrale
 
 - Neuer Tab **Sound**: Installation erkennen oder auswählen, WAD-Archive durchsuchen, einzelne Originalsounds vorhören und einzeln ersetzen oder zurücksetzen.

@@ -17,6 +17,19 @@ import zlib
 
 MAX_AUDIO = 3 * 1024 * 1024
 RECORD = struct.Struct('<lll?Ll')
+HURT_HINTS = ('hurt','pain','damage','hit','grunt','wince')
+
+
+def sound_rows(index, changes, query=''):
+    rows=[]
+    for name,entry in index.entries.items():
+        extension=Path(name).suffix.lower()
+        if extension not in ('.wav','.ogg','.mp3') or query.casefold() not in name.casefold():continue
+        rows.append({'name':name,'bytes':entry['size'],'format':extension[1:],
+                     'changed':name in changes,'candidate':any(s in name.casefold() for s in HURT_HINTS),
+                     'label':changes.get(name,{}).get('label','')})
+    rows.sort(key=lambda r:(not r['changed'],not r['candidate'],r['name'].casefold()))
+    return rows
 
 class SoundError(ValueError):
     pass
@@ -202,18 +215,50 @@ class SoundStore:
     def files(self,archive,query='',offset=0):
         path=self.path(archive);index=WadIndex(path);state=self.state(path)
         if not isinstance(query,str) or len(query)>150 or type(offset) is not int or not 0<=offset<=200000:raise SoundError('Suche ungültig.')
-        changes=(state or {}).get('changes',{});rows=[]
-        for name,entry in index.entries.items():
-            extension=Path(name).suffix.lower()
-            if extension not in ('.wav','.ogg','.mp3') or query.casefold() not in name.casefold():continue
-            candidate=any(s in name.casefold() for s in ('hurt','pain','damage','hit','grunt','wince'))
-            rows.append({'name':name,'bytes':entry['size'],'format':extension[1:],'changed':name in changes,'candidate':candidate,'label':changes.get(name,{}).get('label','')})
-        rows.sort(key=lambda r:(not r['candidate'],r['name'].casefold()))
+        changes=(state or {}).get('changes',{});rows=sound_rows(index,changes,query)
         return {'files':rows[offset:offset+120],'total':len(rows),'offset':offset,'changes':len(changes),'backup':str(self.folder(path)) if state else None}
+
+    def search(self,query='',progress=lambda s:None):
+        if not isinstance(query,str) or len(query)>150:raise SoundError('Suche ungültig.')
+        archives=self.archives()['archives']
+        if not self.game:raise SoundError('Zuerst Installation auswählen.')
+        matches=[];total=0;errors=[];failed=0
+        for i,archive in enumerate(archives):
+            progress(f"Sound-Suche: Archiv {i+1}/{len(archives)} · {archive['id']}")
+            try:
+                path=self.path(archive['id']);index=WadIndex(path);saved=self.state(path)
+                rows=sound_rows(index,(saved or {}).get('changes',{}),query)
+                # With no query, only name hints are shown, never guessed game events.
+                if not query:rows=[row for row in rows if row['candidate']]
+                total+=len(rows)
+                if len(matches)<120:
+                    matches.extend({**row,'archive':archive['id']} for row in rows[:120-len(matches)])
+            except (SoundError,OSError,ValueError,KeyError) as exc:
+                failed+=1
+                if len(errors)<8:errors.append({'archive':archive['id'],'message':str(exc)[:180]})
+        return {'files':matches,'total':total,'archives':len(archives),'failed':failed,'errors':errors,'query':query,'limited':total>120}
+
+    def changes(self):
+        rows=[];errors=[]
+        for archive in self.archives()['archives']:
+            path=self.path(archive['id'])
+            try:
+                saved=self.state(path)
+                for name,change in (saved or {}).get('changes',{}).items():
+                    if len(rows)<500:rows.append({'archive':archive['id'],'name':name,'label':change.get('label',''),
+                                                 'backup':str(self.folder(path))})
+            except (SoundError,OSError,ValueError,KeyError) as exc:
+                if len(errors)<8:errors.append({'archive':archive['id'],'message':str(exc)[:180]})
+        return {'changes':rows,'errors':errors,'limited':len(rows)>=500}
 
     def inspect(self,archive,name):
         path=self.path(archive);data=WadIndex(path).read(name);info=audio_info(data,Path(name).suffix.lower())
-        return {**info,'sha256':hashlib.sha256(data).hexdigest(),'data':base64.b64encode(data).decode()}
+        result={**info,'sha256':hashlib.sha256(data).hexdigest(),'data':base64.b64encode(data).decode()}
+        saved=self.state(path)
+        if name in (saved or {}).get('changes',{}):
+            source=WadIndex(self.folder(path)/'original.wad').read(name)
+            result['baseline']={**audio_info(source,Path(name).suffix.lower()),'data':base64.b64encode(source).decode()}
+        return result
 
     def replace(self,archive,name,data,expected,label='',restore=False,progress=lambda s:None):
         self.guard();path=self.path(archive);index=WadIndex(path)

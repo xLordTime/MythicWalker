@@ -480,7 +480,7 @@ class Bridge:
                 self.session_generation += 1
                 self.hotkeys_paused = False
                 print('Dashboard gekoppelt (' + ('DEMO' if self.demo else 'LIVE') + ').', flush=True)
-                await self.send({'type':'ready','capabilities':['raid','quest_tracking','sound_files']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
+                await self.send({'type':'ready','capabilities':['raid','quest_tracking','sound_files','sound_library']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
                 await self.configure_hotkeys()
                 async with self.lock:
                     try:
