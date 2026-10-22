@@ -1,3 +1,14 @@
+## v0.1.1-beta.19 — Reparierte Ordner- und Archivauswahl
+
+- Echte Windows-Ordnerauswahl über **Ordner auswählen …**, als Hintergrundauftrag mit Abbruch und sauberem Beenden. Kein neuer GUI-Framework-Ballast.
+- Nach Ordnerwahl oder automatischer Installationserkennung werden WAD-Liste und erstes Archiv automatisch geladen. Der Wechsel eines Archivs lädt dessen Sounds direkt.
+- Pfade zum Spielordner, Bin, Data, GameData, zur Spiel-EXE oder zu einer WAD-Datei werden auf die Installation aufgelöst; eingefügte Anführungszeichen werden entfernt.
+- Grundlegende Soundfunktionen werden mit Beta 17 nicht mehr durch die zusätzliche Beta-18-Funktionskennung gesperrt. Separate Freigaben für Grundfunktionen, Bibliothek und nativen Ordnerdialog. Sichtbarer Grund und Bridge-Link bei fehlender Verbindung/Funktion.
+- Keine Leerlauf-Statusabfragen mehr, die Pfadfeld und Archiv-Dropdown regelmäßig deaktivieren. Aufträge und ungeklärte Schreibvorgänge werden weiterhin abgefragt.
+- Versionskennung an den geänderten Browser-Skripten gegen alte Cache-Kombinationen.
+
+Prüfung: tatsächlicher App-Handshake mit Bridge-Funktionsumfang 17/18/19, authentifizierter Bridge-Rundlauf vom Ordner bis zu WAD-Inhalten, Pfadvarianten, Dialogabbruch sowie native Windows-Dialog- und EXE-Smoke-Tests im Release-Workflow. Die Wiedergabe des ausgewählten Sounds im DE-Spiel bleibt vor Ort zu prüfen.
+
 ## v0.1.1-beta.18 — Sound-Suche und Änderungsübersicht
 
 - Suche über alle lokalen WAD-Archive, als Hintergrundauftrag mit Fortschritt. Ohne Suchtext werden mögliche Trefferlaute gesucht; keine automatische Behauptung einer bestätigten Spieleffekt-Zuordnung. Beschädigte/unbekannte Archive werden übersprungen und gezählt.

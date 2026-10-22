@@ -52,6 +52,12 @@ jobs:
           node tests/test_tab_handoff.cjs
           node tests/test_ui_runtime.cjs
           $env:TEST_PAIR="1"; node tests/test_ui_runtime.cjs
+          $env:TEST_SOUND_VERSION="17"; node tests/test_ui_runtime.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Sound-Ordnerauswahl mit Beta 17 fehlgeschlagen.' }
+          $env:TEST_SOUND_VERSION="18"; node tests/test_ui_runtime.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Sound-Ordnerauswahl mit Beta 18 fehlgeschlagen.' }
+          $env:TEST_SOUND_VERSION="19"; node tests/test_ui_runtime.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Sound-Ordnerauswahl mit Beta 19 fehlgeschlagen.' }
       - name: Build compact windowed executable
         shell: pwsh
         env:

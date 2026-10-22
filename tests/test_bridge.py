@@ -109,6 +109,29 @@ class BridgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(ws.closed)
         await ws.close()
 
+    async def test_sound_folder_to_archive_over_authenticated_websocket(self):
+        from sounds import Sounds
+        from test_sound_files import wad,wav
+        game=Path(self.tmp.name).resolve()/'game';(game/'Bin').mkdir(parents=True)
+        (game/'Bin'/'WizardGraphicalClient.exe').write_bytes(b'fixture')
+        (game/'Data'/'GameData').mkdir(parents=True)
+        archive=game/'Data'/'GameData'/'Sound.wad';wad(archive,{'Sounds/hurt.wav':wav()})
+        self.bridge.demo=False;self.bridge.settings.data['global_hotkeys']=False
+        self.bridge.sounds=Sounds(self.bridge,Path(self.tmp.name)/'sounds',lambda:None,picker=lambda *args:str(game/'Data'/'GameData'))
+        ws=await self.connect();ready=await ws.receive_json()
+        self.assertIn('sound_files',ready['capabilities']);self.assertIn('sound_picker',ready['capabilities'])
+        configured=await self.request(ws,'sound_config',{'path':'"'+str(game/'Bin')+'"'})
+        self.assertTrue(configured['ok']);self.assertEqual(configured['data']['archives'][0]['id'],'Sound.wad')
+        files=await self.request(ws,'sound_files',{'archive':'Sound.wad'})
+        self.assertTrue(files['ok']);self.assertEqual(files['data']['files'][0]['name'],'Sounds/hurt.wav')
+        selected=await self.request(ws,'sound_choose_folder')
+        self.assertTrue(selected['ok']);self.assertTrue(selected['data']['started'])
+        await self.bridge.sounds.job
+        status=await self.request(ws,'sound_status')
+        self.assertFalse(status['data']['running']);self.assertEqual(status['data']['result']['installation'],str(game))
+        self.assertFalse((self.bridge.sounds.store.root/'backups').exists())
+        await ws.close()
+
     async def test_packaged_scripts_health_and_authenticated_diagnostics(self):
         from version import RELEASE_TAG
         html = (Path(__file__).resolve().parents[1]/'dist/index.html').read_text(encoding='utf-8')

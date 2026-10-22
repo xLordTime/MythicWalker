@@ -17,13 +17,13 @@ const launchToken='test_pair_token_abcdefghijklmnopqrstuvwxyz';
 if(process.env.TEST_PAIR==='1'){
  context.location={hash:'#pair='+launchToken,pathname:'/',search:''};context.history.replaceState=(state,title,url)=>{context.location.hash=url.slice(url.indexOf('#'));};
  class Socket{
-  constructor(url){this.url=url;this.readyState=1;Socket.instance=this;setTimeout(()=>this.onopen(),0);}
-  send(text){const data=JSON.parse(text);if(data.type==='auth'){this.auth=data;setTimeout(()=>this.onmessage({data:JSON.stringify({type:'ready',version:'0.3.0',backend:'demo',demo:true})}),0);}else{let result={updated:true};if(data.op==='set_settings')result={settings:data.args.settings,hotkeys:{supported:false,active:[],errors:{}}};setTimeout(()=>this.onmessage({data:JSON.stringify({type:'result',id:data.id,ok:true,data:result})}),0);}}
+  constructor(url){this.url=url;this.readyState=1;this.requests=[];Socket.instance=this;setTimeout(()=>this.onopen(),0);}
+  send(text){const data=JSON.parse(text);if(data.type==='auth'){this.auth=data;const version=Number(process.env.TEST_SOUND_VERSION||0),capabilities=version?['sound_files',...(version>=18?['sound_library']:[]),...(version>=19?['sound_picker']:[])]:[];setTimeout(()=>this.onmessage({data:JSON.stringify({type:'ready',version:'0.1.1',release:'v0.1.1-beta.'+version,backend:version?'DE fixture':'demo',demo:!version,capabilities})}),0);}else{this.requests.push(data);let result={updated:true};if(data.op==='set_settings')result={settings:data.args.settings,hotkeys:{supported:false,active:[],errors:{}}};if(data.op==='sound_status')result={running:false,id:0,message:'Bereit'};if(['sound_archives','sound_config'].includes(data.op))result={installation:'C:\\Wizard101',archives:[{id:'Sound.wad',bytes:1000}]};if(data.op==='sound_changes')result={changes:[],errors:[]};if(data.op==='sound_files')result={files:[],total:0,changes:0};setTimeout(()=>this.onmessage({data:JSON.stringify({type:'result',id:data.id,ok:true,data:result})}),0);}}
  }
  context.WebSocket=Socket;
 }
 vm.createContext(context);
-const scriptFiles=[...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(m=>m[1]);
+const scriptFiles=[...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(m=>m[1].split('?')[0]);
 assert(scriptFiles.indexOf('botlang.js')<scriptFiles.indexOf('app.js'));
 assert(scriptFiles.includes('default-library.js')&&scriptFiles.includes('bot-catalog.js')&&scriptFiles.includes('diagnostics.js'));
 for(const file of scriptFiles)vm.runInContext(fs.readFileSync('dist/'+file,'utf8'),context,{filename:file});
@@ -32,7 +32,16 @@ assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='app.init.ready
 function el(id){return elements.get(id);}
 (async()=>{
  if(process.env.TEST_PAIR==='1'){
-  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));console.log('Browser auto-pairing, fragment cleanup and token redaction passed.');process.exit(0);
+  await new Promise(r=>setTimeout(r,30));assert.equal(context.location.hash,'#overview');assert.equal(context.WebSocket.instance.auth.token,launchToken);assert.equal(context.WebSocket.instance.url,'wss://localhost:18761/ws');assert.equal(el('bridge-token').value,'');assert(!el('log-list').innerHTML.includes(launchToken));assert(!JSON.stringify(context.window.mwDiagnostics.snapshot()).includes(launchToken));assert(context.window.mwDiagnostics.snapshot().some(e=>e.event==='ws.auth.sent'));
+  if(process.env.TEST_SOUND_VERSION){
+   const version=Number(process.env.TEST_SOUND_VERSION);await nav.find(n=>n.dataset.page==='sound').click();await new Promise(r=>setTimeout(r,30));
+   assert(!el('sound-path').disabled);assert(!el('sound-configure').disabled);assert(!el('sound-archive').disabled);
+   assert.equal(el('sound-browse').disabled,version<19);assert.equal(el('sound-search-all').disabled,version<18);
+   assert(el('sound-archive').innerHTML.includes('Sound.wad'));
+   await el('sound-configure').click();assert(context.WebSocket.instance.requests.some(r=>r.op==='sound_files'));
+   if(version===17)assert(!context.WebSocket.instance.requests.some(r=>r.op==='sound_changes'));
+   console.log('Real app handshake and folder/archive controls passed for bridge beta '+version);
+  }else console.log('Browser auto-pairing, fragment cleanup and token redaction passed.');process.exit(0);
  }
  assert.equal(el('setting-launcher_enabled').checked,false);assert.equal(nav.find(n=>n.dataset.page==='launcher').hidden,true);
  await nav.find(n=>n.dataset.page==='launcher').click();assert.equal(el('breadcrumb').textContent,'Übersicht');

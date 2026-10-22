@@ -1,3 +1,11 @@
+## Sound-Ordnerauswahl · Beta 19
+
+**Ordner auswählen …** öffnet einen echten Windows-Ordnerdialog über die lokale Bridge. Nach Bestätigung werden Installation und WAD-Liste übernommen und das erste passende Archiv geladen. Alternativ einen Pfad einfügen und **Ordner verwenden** oder Enter drücken. Unterstützt werden der Spielordner, `Bin`, `Data`, `Data/GameData`, die Spiel-EXE oder eine WAD-Datei innerhalb dieser Installation, auch mit kopierten Anführungszeichen. Ein Wechsel im Archiv-Dropdown lädt die Sounds automatisch. Es werden dabei keine Spieldateien geändert.
+
+Der Windows-Dialog benötigt Beta 19. Pfadeingabe und Archivauswahl bleiben mit Beta 17 und 18 nutzbar; die Oberfläche fordert nur für tatsächlich fehlende Zusatzfunktionen ein Update an. Bei Offline-/Demo-/alten Bridge-Sitzungen zeigt der Sound-Tab den Grund und einen direkten Link zur Bridge-Einrichtung. Das Pfadfeld bleibt zur Vorbereitung editierbar. Im Leerlauf gibt es keine Status-Polls mehr, die die Eingabe oder ein geöffnetes Dropdown alle zwei Sekunden sperren. Laufende Aufträge werden weiter überwacht.
+
+Der Ordnerdialog läuft in einem Hintergrundauftrag, sodass die Verbindung erreichbar bleibt. Abbrechen behält die bisherige Installation. Beim Beenden der Bridge wird der Dialog kooperativ geschlossen. Das Update benötigt kein zusätzliches GUI-Framework.
+
 ## Sound-Zentrale · Beta 18
 
 **Alle Archive durchsuchen** sucht einen Dateinamen über die gesamte ausgewählte Installation. Ohne Suchtext werden mögliche Trefferlaute anhand ihrer Namen gesucht. Die Suche läuft als lokaler Hintergrundauftrag und verändert keine Spieldateien. Die ersten 120 Treffer werden angezeigt; bei mehr Treffern den Suchtext eingrenzen. Nicht lesbare Archive werden gezählt. Ein Treffername bestätigt noch nicht den zugehörigen Spieleffekt.

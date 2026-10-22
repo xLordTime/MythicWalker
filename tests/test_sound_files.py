@@ -55,6 +55,12 @@ class SoundFileTests(unittest.TestCase):
         reopened=SoundStore(self.root/'user',lambda:None)
         self.assertEqual(reopened.game,moved)
         self.assertEqual(reopened.archives()['archives'][0]['id'],self.path.name)
+    def test_root_bin_gamedata_executable_and_wad_paths_are_accepted(self):
+        for p in [self.game,self.game/'Bin',self.game/'Data',self.path.parent,self.game/'Bin'/'WizardGraphicalClient.exe',self.path]:
+            with self.subTest(path=p):
+                result=self.store.configure('  "'+str(p)+'"  ')
+                self.assertEqual(result['installation'],str(self.game))
+                self.assertEqual(result['archives'][0]['id'],self.path.name)
     def test_original_preview_and_change_overview_after_replacement(self):
         self.change();preview=self.store.inspect(self.path.name,'Sounds/player_hurt.wav')
         self.assertEqual(base64.b64decode(preview['data']),wav(300))
@@ -164,6 +170,43 @@ class SoundFileTests(unittest.TestCase):
         self.change();self.change(restore=True);self.assertEqual(self.path.read_bytes(),self.baseline)
 
 class SoundJobTests(unittest.IsolatedAsyncioTestCase):
+    @unittest.skipUnless(sys.platform=='win32','Native Windows folder dialog')
+    async def test_native_folder_dialog_opens_and_cooperatively_closes(self):
+        import threading
+        from sound_picker import choose_folder
+        class Cancel:
+            calls=0
+            def is_set(self):self.calls+=1;return True
+        signal=Cancel();result=[];errors=[]
+        def work():
+            try:result.append(choose_folder(cancel=signal))
+            except Exception as exc:errors.append(exc)
+        worker=threading.Thread(target=work,daemon=True);worker.start()
+        await asyncio.to_thread(worker.join,8)
+        self.assertFalse(worker.is_alive(),'Folder dialog did not respond to cancellation')
+        self.assertEqual(errors,[]);self.assertEqual(result,[None]);self.assertGreater(signal.calls,0)
+
+    async def test_folder_picker_is_a_nonblocking_job_and_cancellation_preserves_configuration(self):
+        import threading
+        with tempfile.TemporaryDirectory() as tmp:
+            game=Path(tmp).resolve()/'game';(game/'Bin').mkdir(parents=True);(game/'Bin'/'WizardGraphicalClient.exe').write_bytes(b'fixture')
+            (game/'Data'/'GameData').mkdir(parents=True);wad(game/'Data'/'GameData'/'Sound.wad',{'hurt.wav':wav()})
+            entered=threading.Event();release=threading.Event()
+            def pick(initial,owner,cancel):entered.set();release.wait(2);return str(game/'Bin')
+            service=Sounds(SimpleNamespace(demo=False,launcher=None),Path(tmp)/'user',lambda:None,picker=pick)
+            response=await service.dispatch('sound_choose_folder',{})
+            self.assertTrue(response['started']);await asyncio.to_thread(entered.wait,1)
+            self.assertTrue((await service.dispatch('sound_status',{}))['running'])
+            release.set();await service.job
+            status=await service.dispatch('sound_status',{})
+            self.assertEqual(status['kind'],'folder');self.assertEqual(status['result']['installation'],str(game))
+            self.assertEqual(status['result']['archives'][0]['id'],'Sound.wad')
+            self.assertFalse((service.store.root/'backups').exists())
+            service.picker=lambda *args:None
+            await service.dispatch('sound_choose_folder',{});await service.job
+            self.assertTrue(service.status['result']['cancelled']);self.assertEqual(service.store.game,game)
+            await service.close()
+
     async def test_search_job_does_not_require_game_closed_and_reports_kind(self):
         with tempfile.TemporaryDirectory() as tmp:
             def deny():raise SoundError('Game is open')

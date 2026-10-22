@@ -157,12 +157,17 @@ class WadIndex:
 
 def installation(value):
     if not isinstance(value,str) or len(value)>512:raise SoundError('Installationsordner wählen.')
+    value=value.strip()
+    if len(value)>=2 and value[0]==value[-1] and value[0] in ('"',"'"):value=value[1:-1]
     p=Path(value)
     if not p.is_absolute() or value.startswith(('\\\\','//')):raise SoundError('Lokalen, absoluten Wizard101-Installationsordner wählen.')
-    p=p.resolve();game=p/'Data'/'GameData'
-    if not (p/'Bin'/'WizardGraphicalClient.exe').is_file() or not game.is_dir():raise SoundError('Bin/WizardGraphicalClient.exe oder Data/GameData fehlt.')
-    if game.resolve()!=game or str(p).startswith(('\\\\','//')):raise SoundError('Umgeleitete/Netzwerk-Spielordner werden nicht verändert.')
-    return p
+    p=p.resolve()
+    for root in [p,*list(p.parents)[:3]]:
+        game=root/'Data'/'GameData'
+        if not (root/'Bin'/'WizardGraphicalClient.exe').is_file() or not game.is_dir():continue
+        if game.resolve()!=game or str(root).startswith(('\\\\','//')):raise SoundError('Umgeleitete/Netzwerk-Spielordner werden nicht verändert.')
+        return root
+    raise SoundError('Wizard101-Installation nicht gefunden. Den Spielordner, Bin, Data/GameData oder eine dortige WAD-Datei wählen. Benötigt werden Bin/WizardGraphicalClient.exe und Data/GameData.')
 
 
 class SoundStore:

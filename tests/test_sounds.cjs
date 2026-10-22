@@ -22,22 +22,30 @@ const context={module:{exports:{}},console,URL,Blob,Uint8Array,TextDecoder,DataV
   buttons=Array.from(el('sound-list').innerHTML.matchAll(/data-sound-row="(\d+)"/g),m=>({dataset:{soundRow:m[1]}}));return buttons;
  }}};
 vm.createContext(context);vm.runInContext(fs.readFileSync('dist/sounds.js','utf8'),context);
-const state={connected:false,soundAvailable:true},errors=[];
+const state={connected:false,soundAvailable:true,soundLibraryAvailable:true,soundPickerAvailable:true},errors=[];
 const controller=context.module.exports.createSounds({state,toast:e=>errors.push(e),esc:s=>String(s).replaceAll('<','&lt;').replaceAll('>','&gt;'),command:async(op,args)=>{
  requests.push({op,args});
  if(op==='sound_status'){if(statusDelay){const hold=statusDelay;statusDelay=null;return await hold;}return job;}
  if(op==='sound_archives')return{installation:'C:\\Wizard101',archives:[{id:'Sound-WorldData.wad',bytes:1000},{id:'World-Other.wad',bytes:2000}]};
  if(op==='sound_changes')return{changes:row.changed?[{name:row.name,archive:'Sound-WorldData.wad',label:'<img>Schaden'}]:[],errors:[]};
+ if(op==='sound_config')return{installation:args.path,archives:[{id:'Sound-WorldData.wad',bytes:1000},{id:'World-Other.wad',bytes:2000}]};
  if(op==='sound_files')return{files:[row],total:1,changes:row.changed?1:0};
  if(op==='sound_inspect')return inspectDelay?await inspectDelay:{...original,...(row.changed?{baseline:original}:{})};
  if(op==='sound_apply'){job={running:true,id:1,message:'Arbeitskopie'};return{started:true,id:1};}
  if(op==='sound_search'){job={running:true,id:2,kind:'search',message:'Suche'};return{started:true,id:2};}
+ if(op==='sound_choose_folder'){job={running:true,id:3,kind:'folder',message:'Ordner wählen'};return{started:true,id:3};}
  throw Error('Unexpected command '+op);
 }});
 const flush=()=>new Promise(r=>setImmediate(r));
 (async()=>{
  controller.navigate('sound');assert.equal(requests.length,0);assert(el('sound-apply').disabled);
+ assert(!el('sound-path').disabled,'Path can be prepared while offline');
  state.connected=true;controller.render();await flush();assert.equal(requests.filter(r=>r.op==='sound_apply').length,0);
+ assert(!el('sound-path').disabled);assert(!el('sound-archive').disabled);assert.equal(timers.size,0,'Idle polling must not interrupt path input or close an open archive dropdown');
+ el('sound-path').value='C:\\NewWizard';await el('sound-configure').onclick();
+ assert(requests.at(-1).op==='sound_files','Selecting an installation populates and loads its archive');
+ el('sound-archive').value='World-Other.wad';await el('sound-archive').onchange();assert.equal(requests.at(-1).args.archive,'World-Other.wad');
+ el('sound-archive').value='Sound-WorldData.wad';await el('sound-archive').onchange();
  await el('sound-load').onclick();assert(el('sound-list').innerHTML.includes('&lt;hurt&gt;'));
  await buttons[0].onclick();assert(el('sound-apply').disabled);assert(el('sound-original').src.startsWith('blob:'));
  await el('sound-preset').onclick();assert(el('sound-apply').disabled,'Explicit confirmation required');
@@ -63,6 +71,15 @@ const flush=()=>new Promise(r=>setImmediate(r));
  state.connected=false;controller.closed();state.connected=true;controller.render();await flush();
  resolveStatus({running:true,id:99,message:'Alte Sitzung'});await stale;
  assert.equal(el('sound-mode').textContent,'Lokale Dateizentrale');assert(!el('sound-search-all').disabled);
+ await el('sound-browse').onclick();assert(requests.at(-1).op==='sound_choose_folder');
+ job={running:false,id:3,kind:'folder',message:'Ordner übernommen',result:{installation:'C:\\Picked',archives:[{id:'Sound-WorldData.wad',bytes:1000}]}};
+ await el('sound-check').onclick();assert.equal(el('sound-path').value,'C:\\Picked');assert(!el('sound-archive').disabled);assert.equal(requests.at(-1).op,'sound_files');
+ controller.closed();state.soundLibraryAvailable=false;state.soundPickerAvailable=false;job={running:false,id:0,message:'Beta 17'};
+ const start=requests.length;controller.render();await flush();
+ assert(!el('sound-path').disabled);assert(!el('sound-configure').disabled);assert(!el('sound-archive').disabled);
+ assert(el('sound-browse').disabled);assert(el('sound-search-all').disabled);
+ assert(!requests.slice(start).some(r=>['sound_changes','sound_search','sound_choose_folder'].includes(r.op)),'Beta 17 must use only supported commands');
+ await el('sound-configure').onclick();assert.equal(requests.at(-1).op,'sound_files');
  controller.closed();
  console.log('Sound conversion, saved original/current preview, overview, global search identity, confirmation and stale-session handling passed.');
 })().catch(e=>{console.error(e);process.exit(1);});
