@@ -16,7 +16,7 @@ LOCAL_ORIGIN='https://localhost:18762'
 class LauncherService:
     def __init__(self, vault=None, native=None):
         self.vault=vault or Vault();self.native=native or NativeLauncher()
-        self.enabled=False;self.available=False;self.ticket=None;self.ticket_until=0
+        self.launch_allowed=lambda:True;self.enabled=False;self.available=False;self.ticket=None;self.ticket_until=0
         self.session=None;self.session_until=0
         self.lock=asyncio.Lock();self.cancel=threading.Event();self.job=None
         self.progress={'running':False,'message':'Bereit.','done':0,'total':0}
@@ -60,6 +60,7 @@ class LauncherService:
                 'regions':REGIONS,'progress':dict(self.progress),'processes':[p.pid for p in self.processes]}
 
     async def launch(self, args):
+        if not self.launch_allowed():raise LauncherError('Sound-Dateioperation zuerst abschließen lassen.')
         self.vault.require()
         if self.job and not self.job.done():raise LauncherError('Ein Startvorgang läuft bereits.')
         accounts=args.get('ids',[]);region=args.get('region','de');count=args.get('count',1)
@@ -174,7 +175,7 @@ def local_app(service, frame_origins, web_dir=None):
 
 
 def attach_launcher(app, bridge, tls):
-    service=LauncherService();service.enabled=bridge.settings.data['launcher_enabled'];bridge.launcher=service
+    service=LauncherService();service.launch_allowed=lambda:not bridge.sounds.running;service.enabled=bridge.settings.data['launcher_enabled'];bridge.launcher=service
     if bridge.widget:bridge.widget.launcher_enabled=service.enabled
     async def lifetime(_):
         runner=web.AppRunner(local_app(service,bridge.origins),access_log=None)

@@ -60,3 +60,7 @@ Source: https://github.com/xLordTime/wiz-q-launcher/tree/bf3759d89bdd4682f09df99
 ## SpiralTracker (design reference only)
 
 https://spiraltracker.com/ — UI/development credited by its credits page to HiitSayZ. Quest-overview concept used as inspiration. No verified open-source license was located; no source code, artwork, or complete quest-guide data from this site is redistributed. `bridge/quest_tracker.py` and `dist/quests.js` are independent implementations using local game data through the already credited DE-WizWalker.
+
+## KIWAD format references
+
+`bridge/sound_files.py` is an independent single-entry sound editor based on format descriptions in https://github.com/jonpalmisc/libkiwad/blob/master/SPEC.org and the read/pack layout in https://github.com/wizspoil/wizwad at `4f871ba2d66bfcf1f9c14dbae3173ab67a246c60`. No upstream implementation or game archive/audio is bundled. The `damage.wav` / `damage.ogg` preset is converted from the recording supplied by the MythicWalker project owner for this feature.

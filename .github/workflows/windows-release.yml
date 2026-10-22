@@ -45,6 +45,7 @@ jobs:
           node tests/test_accounts.cjs
           node tests/test_frontend.cjs
           node tests/test_quests.cjs
+          node tests/test_sounds.cjs
           node tests/test_launcher_frontend.cjs
           node tests/test_launcher_ui.cjs
           node tests/test_browser_diagnostics.cjs
@@ -56,7 +57,7 @@ jobs:
         env:
           RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
-          Copy-Item dist/quests.js,dist/index.html,dist/launcher.js,dist/accounts.js,dist/raids.js,dist/raid-catalog.js,dist/fishing.js,dist/handoff.js,dist/script-functions.js,dist/script-studio.js,dist/diagnostics.js,dist/app.js,dist/settings.js,dist/tools.js,dist/style.css,dist/sources.json,dist/botlang.js,dist/bot-catalog.js,dist/default-library.js,dist/default-library.json,dist/upstream-bots.json,dist/BOTS_LICENSE.txt bridge/web -Force
+          Copy-Item dist/sounds.js,dist/quests.js,dist/index.html,dist/launcher.js,dist/accounts.js,dist/raids.js,dist/raid-catalog.js,dist/fishing.js,dist/handoff.js,dist/script-functions.js,dist/script-studio.js,dist/diagnostics.js,dist/app.js,dist/settings.js,dist/tools.js,dist/style.css,dist/sources.json,dist/botlang.js,dist/bot-catalog.js,dist/default-library.js,dist/default-library.json,dist/upstream-bots.json,dist/BOTS_LICENSE.txt bridge/web -Force
           @{repository=$env:RELEASE_REPOSITORY} | ConvertTo-Json | Set-Content bridge/release_source.json -Encoding utf8NoBOM
           Set-Location bridge
           python -m PyInstaller --noconfirm --clean --onefile --windowed --name MythicWalker --icon assets/mythicwalker.ico --add-data 'assets;assets' --collect-submodules wizwalker --collect-submodules memobj --copy-metadata numpy --copy-metadata shapely --add-data 'memobj/LICENSE;memobj' --add-data 'vendor/raids/LICENSE;vendor/raids' --add-data 'web;web' --add-data 'launcher_web;launcher_web' --add-data 'release_source.json;.' --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6 --exclude-module matplotlib  desktop.py

@@ -71,6 +71,16 @@
       "name": "SpiralTracker · HiitSayZ",
       "url": "https://spiraltracker.com/credits",
       "role": "Inspiration für die Questübersicht. Eigenständige Umsetzung; kein Website-Code oder vollständiger Guide übernommen."
+    },
+    {
+      "name": "jonpalmisc / libkiwad",
+      "url": "https://github.com/jonpalmisc/libkiwad/blob/master/SPEC.org",
+      "role": "KIWAD-Formatreferenz für die eigenständige Sound-Zentrale"
+    },
+    {
+      "name": "wizspoil / wizwad",
+      "url": "https://github.com/wizspoil/wizwad",
+      "role": "KIWAD-Lese-/Packlayout und CRC-Referenz · eigenständige Umsetzung"
     }
   ]
 }

@@ -101,6 +101,8 @@ class Bridge:
         self.launcher = None
         from quest_tracker import QuestReader
         self.quest_reader = QuestReader()
+        from sounds import Sounds
+        self.sounds = Sounds(self)
 
     async def set_script_playstyle(self,source,ids):
         rows=parse_style(source)
@@ -306,6 +308,7 @@ class Bridge:
         raise ValueError('Unbekannte Movement-Aktion.')
 
     async def dispatch(self, op, args):
+        if isinstance(op,str) and op.startswith('sound_'):return await self.sounds.dispatch(op,args)
         if op == 'launcher_ticket':
             if not self.launcher or self.demo:raise ValueError('Launcher benötigt eine aktuelle Windows-Live-Bridge.')
             return self.launcher.issue_ticket()
@@ -460,7 +463,7 @@ class Bridge:
             raise web.HTTPConflict(text='Bridge ist bereits verbunden oder wird beendet.')
         # Claim the session before awaiting the handshake, including teardown.
         async with self.session_lock:
-            ws = web.WebSocketResponse(max_msg_size=1048576, heartbeat=20)
+            ws = web.WebSocketResponse(max_msg_size=5*1048576, heartbeat=20)
             await ws.prepare(request)
             poll = None
             try:
@@ -477,7 +480,7 @@ class Bridge:
                 self.session_generation += 1
                 self.hotkeys_paused = False
                 print('Dashboard gekoppelt (' + ('DEMO' if self.demo else 'LIVE') + ').', flush=True)
-                await self.send({'type':'ready','capabilities':['raid','quest_tracking']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
+                await self.send({'type':'ready','capabilities':['raid','quest_tracking','sound_files']+(['launcher'] if self.launcher and self.launcher.available and not self.demo else []),'version':VERSION,'release':RELEASE_TAG,'demo':self.demo,'backend':'demo' if self.demo else 'Vindaloniak DE','commit':'13223e0911578e586975ace496d9f586ac4538da'})
                 await self.configure_hotkeys()
                 async with self.lock:
                     try:
@@ -506,7 +509,7 @@ class Bridge:
                                 await self.log(error, 'error')
                         if data.get('op') in {'hook','unhook','scan'}:await self.configure_hotkeys()
                         await self.send({'type':'result','id':data['id'],'ok':True,'data':result})
-                        if data.get('op') not in {'quest_status','get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics','validate_script','validate_playstyle','script_capabilities','validate_block_library'}:
+                        if not str(data.get('op','')).startswith('sound_') and data.get('op') not in {'quest_status','get_settings','set_settings','pause_hotkeys','shortcut_context','get_diagnostics','validate_script','validate_playstyle','script_capabilities','validate_block_library'}:
                             async with self.lock: await self.state()
                     except Exception as exc:
                         logger.exception('command.failed op=%s', data.get('op') if isinstance(data,dict) else 'invalid')
@@ -545,6 +548,7 @@ class Bridge:
 
     async def shutdown(self, app):
         self.shutting_down = True
+        await self.sounds.close()
         if self.launcher:
             async with self.launcher.lock:await self.launcher.revoke()
         self.session_generation += 1
@@ -582,7 +586,7 @@ def create_app(bridge, web_dir):
     app.router.add_get('/health',health)
     app.router.add_get('/',index)
     # Serve only the explicit frontend assets, never bridge source/certificates.
-    for filename in ['app.js','quests.js','launcher.js','accounts.js','raids.js','raid-catalog.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
+    for filename in ['app.js','sounds.js','quests.js','launcher.js','accounts.js','raids.js','raid-catalog.js','fishing.js','script-functions.js','script-studio.js','handoff.js','diagnostics.js','settings.js','tools.js','style.css','sources.json','botlang.js','bot-catalog.js','default-library.js','default-library.json','upstream-bots.json','BOTS_LICENSE.txt']:
         async def asset(request, filename=filename): return web.FileResponse(web_dir/filename)
         app.router.add_get('/'+filename,asset)
     # Only public, packaged icon assets; never expose other bridge directories.

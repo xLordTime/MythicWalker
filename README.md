@@ -1,3 +1,13 @@
+## Sound-Zentrale · Beta 17
+
+Der neue Tab **Sound** verwaltet kurze Effekte einzeln in lokalen KIWAD-Archiven. Die mitgelieferte Aufnahme „Schaden bekommen“ ist als WAV (16-Bit-PCM) und Ogg-Vorbis vorbereitet. Es gibt keine bestätigte automatische Zuordnung zum DE-Trefferlaut: Installation erkennen, Sound-Archiv auswählen, nach `hurt`, `pain`, `damage`, `hit` oder `grunt` suchen und das Original vorhören. Danach die Aufnahme oder eine eigene Datei zuweisen.
+
+- **Anwenden:** alle Wizard101-Clients und den offiziellen Launcher schließen, Original wählen, Ersatz vorhören, Bestätigung setzen und anwenden. Danach das Spiel neu starten. Ein Hook ist dafür nicht nötig. Der Austausch betrifft alle Clients derselben Installation; eine Datei kann von mehreren Figuren verwendet werden.
+- Unterstützt werden kurze WAV-/Vorbis-Effekte bis 15 Sekunden / 3 MB. WAV wird im Browser auf die ursprüngliche Kanalzahl und Abtastrate umgewandelt. Eigene Ogg-Ziele benötigen Vorbis; Opus/OGA nicht lediglich umbenennen. MP3 und unbekannte Archiv-/Audioformate werden nicht verändert.
+- Vor der ersten Änderung wird das vollständige Archiv unter `%LOCALAPPDATA%\MythicWalker\sounds\backups` gesichert. Arbeitskopie und Prüfsummen werden vor dem atomaren Austausch geprüft. Ausreichend freier Platz für Sicherung und Arbeitskopie ist erforderlich. **Original wiederherstellen** setzt nur den ausgewählten Sound zurück; beim letzten Zurücksetzen wird das Archiv bytegenau wiederhergestellt.
+- Sounddateien und Installationspfad werden über die gepaarte lokale Bridge bearbeitet. Es gibt keinen externen Upload-Endpunkt. Dateivorgänge laufen als Statusauftrag, verhindern parallele Änderungen und blockieren Starts über den integrierten Launcher bis zum Abschluss.
+- Experimentell: Format und Rücksetzen sind mit Testarchiven geprüft. Der tatsächliche Trefferlaut und die Wiedergabe im aktuellen DE-Spiel sind ohne lokale Spielinstallation noch nicht bestätigt. Spielupdates können Änderungen überschreiben. Extern veränderte Archive werden gesperrt, damit eine alte Sicherung kein Update überschreibt.
+
 ## Questen & Launcher-Schalter · Beta 16
 
 - **Einstellungen → Launcher aktivieren** ist standardmäßig aus, auch nach Migration von Beta 15. Mit Aktivierung erscheint Launcher wieder als erster Tab. Ausschalten sperrt lokale Sitzungen/Tickets und stoppt weitere Starts; bestehende Spiele und gespeicherte Konten bleiben erhalten. Kontodaten bleiben ausschließlich im lokalen Windows-Tresor.

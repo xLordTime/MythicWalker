@@ -1,3 +1,14 @@
+## v0.1.1-beta.17 — Lokale Sound-Zentrale
+
+- Neuer Tab **Sound**: Installation erkennen oder auswählen, WAD-Archive durchsuchen, einzelne Originalsounds vorhören und einzeln ersetzen oder zurücksetzen.
+- Mitgelieferte Aufnahme „Schaden bekommen“ als WAV/PCM16 und Ogg-Vorbis. Dateinamen-Kandidaten sind Suchhilfen, keine verifizierte automatische Trefferlaut-Zuordnung.
+- Eigene Audio-Dateien: WAV-Umwandlung lokal im Browser; Vorbis für Ogg-Ziele. Begrenzung auf kurze Effekte bis 15 Sekunden / 3 MB.
+- Vollständige Originalsicherung, geprüfte Arbeitskopie, atomarer Dateiaustausch und wiederaufnehmbares Transaktionsjournal. Einzelne Änderungen bleiben getrennt; die letzte Wiederherstellung ergibt das bytegleiche Originalarchiv.
+- Schreiben nur bei geschlossenen Spiel-/Launcher-Prozessen. Keine zusätzlichen Memory-Hooks. Hintergrundaufträge mit Statusabfrage verhindern doppelte Schreibvorgänge; der integrierte Launcher wartet auf deren Abschluss.
+- Externe Archivänderungen, beschädigte Sicherungen, unbekannte Formate, unvollständige Downloads, Pfadumleitungen und veraltete Vorschauen stoppen den Vorgang.
+
+Validierung: Archiv-/Audio-/Abbruchtests und Frontend-Tests. Windows-Prozessprüfung, EXE-Build und Widget-Smoke-Test im Release-Workflow. Wiedergabe und konkrete Sound-Zuordnung im aktuellen DE-Spiel müssen vor Ort geprüft werden; keine Spielarchive werden mitgeliefert.
+
 ## v0.1.1-beta.16 — Quest-Tracker & optionaler Launcher
 
 - Neuer Tab **Questen** mit eigener Client-Auswahl, schreibgeschütztem Live-Journal, Suche, Hauptquest-/Weltfiltern und automatischer Hervorhebung anhand von Quest- und Teilziel-IDs.
